@@ -294,7 +294,15 @@
 
         .progress-ring-fill {
             stroke: url(#gradientCyan);
+            animation: pulseGlow 3s infinite ease-in-out;
         }
+
+        @keyframes pulseGlow {
+            0% { filter: drop-shadow(0 0 2px var(--accent-blue)); }
+            50% { filter: drop-shadow(0 0 10px var(--accent-blue)); }
+            100% { filter: drop-shadow(0 0 2px var(--accent-blue)); }
+        }
+
 
         .progress-ring-fill.magenta {
             stroke: url(#gradientMagenta);
@@ -738,21 +746,21 @@
                     <div class="progress-ring-wrapper">
                         <svg class="progress-ring" viewBox="0 0 100 100">
                             <defs>
-                                <linearGradient id="gradientCyan" x1="0%" y1="0%" x2="100%" y2="100%">
-                                    <stop offset="0%" style="stop-color:#ff3b30;stop-opacity:1" />
-                                    <stop offset="100%" style="stop-color:#5956d6;stop-opacity:1" />
-                                </linearGradient>
-                                <linearGradient id="gradientMagenta" x1="0%" y1="0%" x2="100%" y2="100%">
-                                    <stop offset="0%" style="stop-color:#ff3b30;stop-opacity:1" />
-                                    <stop offset="100%" style="stop-color:#5956d6;stop-opacity:1" />
-                                </linearGradient>
-                                <linearGradient id="gradientGreen" x1="0%" y1="0%" x2="100%" y2="100%">
-                                    <stop offset="0%" style="stop-color:#4cd964;stop-opacity:1" />
-                                    <stop offset="100%" style="stop-color:#007aff;stop-opacity:1" />
-                                </linearGradient>
-                                <linearGradient id="gradientOrange" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <linearGradient id="gradientMorning" x1="0%" y1="0%" x2="100%" y2="100%">
                                     <stop offset="0%" style="stop-color:#ff9500;stop-opacity:1" />
+                                    <stop offset="100%" style="stop-color:#ffcc00;stop-opacity:1" />
+                                </linearGradient>
+                                <linearGradient id="gradientAfternoon" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#007aff;stop-opacity:1" />
+                                    <stop offset="100%" style="stop-color:#00d4ff;stop-opacity:1" />
+                                </linearGradient>
+                                <linearGradient id="gradientEvening" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#5956d6;stop-opacity:1" />
                                     <stop offset="100%" style="stop-color:#ff3b30;stop-opacity:1" />
+                                </linearGradient>
+                                <linearGradient id="gradientNight" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#1a1a2e;stop-opacity:1" />
+                                    <stop offset="100%" style="stop-color:#4b0082;stop-opacity:1" />
                                 </linearGradient>
                             </defs>
                             <circle class="progress-ring-circle progress-ring-bg" cx="50" cy="50" r="40"></circle>
@@ -1005,15 +1013,48 @@
 
             const circumference = 251.2;
             const offset = circumference * (1 - dayProgress / 100);
-            document.getElementById('dayProgressCircle').style.strokeDashoffset = offset;
+            const circle = document.getElementById('dayProgressCircle');
+            circle.style.strokeDashoffset = offset;
 
             document.getElementById('dayProgressValue').textContent = Math.round(dayProgress) + '%';
+
+            // Dynamic Color and Label based on time of day
+            let gradientId = 'gradientNight';
+            let status = 'Night';
+
+            if (hours >= 5 && hours < 12) {
+                gradientId = 'gradientMorning';
+                status = 'Morning';
+            } else if (hours >= 12 && hours < 17) {
+                gradientId = 'gradientAfternoon';
+                status = 'Afternoon';
+            } else if (hours >= 17 && hours < 21) {
+                gradientId = 'gradientEvening';
+                status = 'Evening';
+            }
+
+            circle.setAttribute('stroke', `url(#${gradientId})`);
+            document.querySelector('.progress-text .progress-label').textContent = status;
+
+            // Calculate time remaining in the day
+            const totalSecondsInDay = 24 * 60 * 60;
+            const secondsPassed = (hours * 3600) + (minutes * 60) + seconds;
+            const remainingSeconds = totalSecondsInDay - secondsPassed;
+
+            const hRem = Math.floor(remainingSeconds / 3600);
+            const mRem = Math.floor((remainingSeconds % 3600) / 60);
+            const sRem = remainingSeconds % 60;
+            const timeRemainingStr = `${hRem}h ${mRem}m ${sRem}s`;
 
             const completedToday = Object.keys(habitCompletions).filter(key => {
                 const today = new Date().toISOString().split('T')[0];
                 return key.endsWith('-' + today) && habitCompletions[key];
             }).length;
-            document.getElementById('dayProgressDesc').textContent = `${completedToday} habits completed • Keep going!`;
+
+            document.getElementById('dayProgressDesc').textContent =
+                `${completedToday} habits completed • ${timeRemainingStr} left`;
+
+            requestAnimationFrame(updateDayProgress);
         }
 
         function switchTab(event, tabName) {
@@ -1324,8 +1365,6 @@
         renderHabits();
         updateYearProgress();
         updateDayProgress();
-
-        setInterval(updateDayProgress, 60000);
     </script>
 </body>
 </html>
