@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Habit Tracker</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -32,7 +33,7 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            font-family: 'Rajdhani', sans-serif;
             background: linear-gradient(135deg, var(--bg-dark) 0%, #0f1219 100%);
             color: var(--text-primary);
             min-height: 100vh;
@@ -56,6 +57,7 @@
         }
 
         .header-title {
+            font-family: 'Orbitron', sans-serif;
             font-size: 32px;
             font-weight: 700;
             background: linear-gradient(135deg, var(--accent-red), var(--accent-purple));
@@ -320,6 +322,7 @@
         }
 
         .progress-value {
+            font-family: 'Orbitron', sans-serif;
             font-size: 48px;
             font-weight: 700;
             display: block;
@@ -371,6 +374,7 @@
         }
 
         .stat-value {
+            font-family: 'Orbitron', sans-serif;
             font-size: 24px;
             font-weight: 700;
             display: block;
@@ -755,7 +759,7 @@
                                 </linearGradient>
                             </defs>
                             <circle class="progress-ring-circle progress-ring-bg" cx="50" cy="50" r="40"></circle>
-                            <circle class="progress-ring-circle progress-ring-fill" id="dayProgressCircle" cx="50" cy="50" r="40" 
+                            <circle class="progress-ring-circle progress-ring-fill" id="dayProgressCircle" cx="50" cy="50" r="40"
                                 style="stroke-dasharray: 251.2; stroke-dashoffset: 251.2;"></circle>
                         </svg>
                         <div class="progress-text">
@@ -796,7 +800,7 @@
                     <div class="progress-ring-wrapper">
                         <svg class="progress-ring" viewBox="0 0 100 100">
                             <circle class="progress-ring-circle progress-ring-bg" cx="50" cy="50" r="40"></circle>
-                            <circle class="progress-ring-circle progress-ring-fill orange" cx="50" cy="50" r="40" 
+                            <circle class="progress-ring-circle progress-ring-fill orange" cx="50" cy="50" r="40"
                                 style="stroke-dasharray: 251.2; stroke-dashoffset: 100;"></circle>
                         </svg>
                         <div class="progress-text">
@@ -822,7 +826,7 @@
                     <div class="progress-ring-wrapper">
                         <svg class="progress-ring" viewBox="0 0 100 100">
                             <circle class="progress-ring-circle progress-ring-bg" cx="50" cy="50" r="40"></circle>
-                            <circle class="progress-ring-circle progress-ring-fill green" cx="50" cy="50" r="40" 
+                            <circle class="progress-ring-circle progress-ring-fill green" cx="50" cy="50" r="40"
                                 style="stroke-dasharray: 251.2; stroke-dashoffset: 125.6;"></circle>
                         </svg>
                         <div class="progress-text">
@@ -952,10 +956,10 @@
         let draggedIndex = null;
         let touchStartY = 0;
         let touchTimer = null;
-        
+
         // Track habit completions by date
         let habitCompletions = {};
-        
+
         // Notes
         let notes = '';
 
@@ -990,7 +994,7 @@
             const isLeapYear = (now.getFullYear() % 4 === 0 && now.getFullYear() % 100 !== 0) || (now.getFullYear() % 400 === 0);
             const totalDays = isLeapYear ? 366 : 365;
             const percentage = (dayOfYear / totalDays) * 100;
-            
+
             document.getElementById('yearCounter').textContent = `${dayOfYear}/${totalDays}`;
             document.getElementById('yearProgressFill').style.width = percentage + '%';
         }
@@ -1001,19 +1005,19 @@
             const hours = now.getHours();
             const minutes = now.getMinutes();
             const seconds = now.getSeconds();
-            
+
             // Calculate decimal time (0-24)
             const decimalHours = hours + minutes / 60 + seconds / 3600;
             const dayProgress = (decimalHours / 24) * 100;
-            
+
             // Update circle
             const circumference = 251.2; // 2 * π * 40
             const offset = circumference * (1 - dayProgress / 100);
             document.getElementById('dayProgressCircle').style.strokeDashoffset = offset;
-            
+
             // Update text
             document.getElementById('dayProgressValue').textContent = Math.round(dayProgress) + '%';
-            
+
             // Update description
             const completedToday = Object.keys(habitCompletions).filter(key => {
                 const today = new Date().toISOString().split('T')[0];
@@ -1024,11 +1028,11 @@
 
         function switchTab(event, tabName) {
             event.preventDefault();
-            
+
             // Hide all tabs
             document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
             document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
-            
+
             // Show selected tab
             document.getElementById(tabName).style.display = 'block';
             event.target.closest('.tab').classList.add('active');
@@ -1156,7 +1160,7 @@
         function dragEnd(event) {
             draggedItem.classList.remove('dragging');
             draggedItem.classList.remove('drag-over');
-            
+
             // Reorder habits array based on DOM
             const items = document.querySelectorAll('.habit-item');
             const newOrder = [];
@@ -1179,7 +1183,7 @@
 
         function renderWeeklyPerformance() {
             const container = document.getElementById('weeklyPerformance');
-            
+
             if (habits.length === 0) {
                 container.innerHTML = '<div style="text-align: center; color: var(--text-secondary); padding: 24px;">No habits to track</div>';
                 return;
@@ -1249,7 +1253,7 @@
 
             const year = calendarDate.getFullYear();
             const month = calendarDate.getMonth();
-            
+
             // Update month/year display
             const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
                               'July', 'August', 'September', 'October', 'November', 'December'];
@@ -1281,7 +1285,7 @@
                 dayEl.textContent = day;
                 dayEl.style.cursor = 'pointer';
                 dayEl.onclick = () => toggleDateCompletion(habitId, dateStr);
-                
+
                 grid.appendChild(dayEl);
             }
         }
@@ -1323,12 +1327,12 @@
             const name = document.getElementById('habitName').value.trim();
             const category = document.getElementById('habitCategory').value;
             console.log('Form values - name:', name, 'category:', category, 'color:', selectedColor);
-            
+
             if (!name) {
                 alert('Please enter a habit name');
                 return;
             }
-            
+
             if (editingHabitId) {
                 // Update existing habit
                 const habit = habits.find(h => h.id === editingHabitId);
@@ -1353,10 +1357,10 @@
 
             saveData();
             console.log('Data saved');
-            
+
             renderHabits();
             console.log('Habits rendered');
-            
+
             closeModal();
             console.log('Modal closed');
         }
@@ -1364,15 +1368,15 @@
         function editHabit(id) {
             const habit = habits.find(h => h.id === id);
             if (!habit) return;
-            
+
             editingHabitId = id;
             selectedColor = habit.color;
-            
+
             document.getElementById('habitName').value = habit.name;
             document.getElementById('habitCategory').value = habit.category;
             document.getElementById('modalTitle').textContent = 'Edit Habit';
             document.getElementById('submitBtn').textContent = 'Update Habit';
-            
+
             updateColorPickerUI();
             document.getElementById('habitModal').classList.add('active');
         }
@@ -1391,19 +1395,19 @@
         }
 
         function updateColorPickerUI() {
-            const colorMap = { 
-                red: '#ff3b30', 
-                orange: '#ff9500', 
-                green: '#4cd964', 
-                blue: '#007aff', 
-                purple: '#5956d6' 
+            const colorMap = {
+                red: '#ff3b30',
+                orange: '#ff9500',
+                green: '#4cd964',
+                blue: '#007aff',
+                purple: '#5956d6'
             };
-            
+
             document.querySelectorAll('.color-picker').forEach(btn => {
                 btn.classList.remove('active');
                 btn.style.border = '2px solid transparent';
             });
-            
+
             // Find and style the selected color button
             const buttons = document.querySelectorAll('.color-picker');
             const colorOrder = ['red', 'orange', 'green', 'blue', 'purple'];
@@ -1432,7 +1436,7 @@
         renderHabits();
         updateYearProgress();
         updateDayProgress();
-        
+
         // Update day progress every minute
         setInterval(updateDayProgress, 60000);
     </script>
