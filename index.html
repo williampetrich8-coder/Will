@@ -189,14 +189,9 @@
             border-bottom: none;
         }
 
-        .habit-item.dragging {
-            opacity: 0.5;
-            cursor: grabbing;
-        }
-
-        .habit-item.drag-over {
-            border-top: 2px solid var(--accent-blue);
-            padding-top: 14px;
+        .sortable-ghost {
+            opacity: 0.4;
+            background: var(--bg-card-alt);
         }
 
         .habit-checkbox {
@@ -561,6 +556,7 @@
             color: var(--text-primary);
             font-size: 14px;
             transition: all 0.3s ease;
+            font-family: inherit;
         }
 
         .form-input:focus,
@@ -585,6 +581,7 @@
             font-size: 14px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            font-family: 'Rajdhani', sans-serif;
         }
 
         .btn-primary {
@@ -940,6 +937,7 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <script>
         // Sample data
         let habits = [
@@ -952,10 +950,6 @@
         let selectedColor = 'red';
         let calendarDate = new Date();
         let editingHabitId = null;
-        let draggedItem = null;
-        let draggedIndex = null;
-        let touchStartY = 0;
-        let touchTimer = null;
 
         // Track habit completions by date
         let habitCompletions = {};
@@ -1006,19 +1000,15 @@
             const minutes = now.getMinutes();
             const seconds = now.getSeconds();
 
-            // Calculate decimal time (0-24)
             const decimalHours = hours + minutes / 60 + seconds / 3600;
             const dayProgress = (decimalHours / 24) * 100;
 
-            // Update circle
-            const circumference = 251.2; // 2 * π * 40
+            const circumference = 251.2;
             const offset = circumference * (1 - dayProgress / 100);
             document.getElementById('dayProgressCircle').style.strokeDashoffset = offset;
 
-            // Update text
             document.getElementById('dayProgressValue').textContent = Math.round(dayProgress) + '%';
 
-            // Update description
             const completedToday = Object.keys(habitCompletions).filter(key => {
                 const today = new Date().toISOString().split('T')[0];
                 return key.endsWith('-' + today) && habitCompletions[key];
@@ -1029,11 +1019,9 @@
         function switchTab(event, tabName) {
             event.preventDefault();
 
-            // Hide all tabs
             document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
             document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
 
-            // Show selected tab
             document.getElementById(tabName).style.display = 'block';
             event.target.closest('.tab').classList.add('active');
 
@@ -1058,7 +1046,7 @@
                 const completionKey = `${habit.id}-${today}`;
                 const completedToday = habitCompletions[completionKey];
                 return `
-                    <div class="habit-item" data-index="${index}" ontouchstart="touchStart(event, ${index})" ontouchmove="touchMove(event)" ontouchend="touchEnd(event, ${index})" ondragstart="dragStart(event, ${index})" ondragover="dragOver(event)" ondrop="drop(event, ${index})" ondragend="dragEnd(event)">
+                    <div class="habit-item" data-id="${habit.id}">
                         <div class="habit-checkbox ${completedToday ? 'checked' : ''}" onclick="toggleHabitToday(${habit.id})">
                             ${completedToday ? '✓' : ''}
                         </div>
@@ -1076,100 +1064,25 @@
                     </div>
                 `;
             }).join('');
-        }
 
-        function touchStart(event, index) {
-            touchStartY = event.touches[0].clientY;
-            touchTimer = setTimeout(() => {
-                draggedItem = event.currentTarget;
-                draggedIndex = index;
-                draggedItem.classList.add('dragging');
-                touchTimer = null;
-            }, 500);
-        }
-
-        function touchMove(event) {
-            if (draggedItem) {
-                event.preventDefault();
-                const touchY = event.touches[0].clientY;
-                const afterElement = getDragAfterElement(touchY);
-                if (afterElement == null) {
-                    document.getElementById('habitsList').appendChild(draggedItem);
-                } else {
-                    document.getElementById('habitsList').insertBefore(draggedItem, afterElement);
+            // Initialize SortableJS for drag-and-drop reordering
+            new Sortable(habitsList, {
+                animation: 150,
+                delay: 500, // Requires holding down for 500ms to drag
+                delayOnTouchOnly: true,
+                ghostClass: 'sortable-ghost',
+                onEnd: function() {
+                    const items = habitsList.querySelectorAll('.habit-item');
+                    const newOrder = [];
+                    items.forEach(item => {
+                        const id = parseInt(item.getAttribute('data-id'));
+                        const habit = habits.find(h => h.id === id);
+                        if (habit) newOrder.push(habit);
+                    });
+                    habits = newOrder;
+                    saveData();
                 }
-                draggedItem.classList.add('drag-over');
-            }
-        }
-
-        function touchEnd(event, index) {
-            if (touchTimer) {
-                clearTimeout(touchTimer);
-                touchTimer = null;
-            }
-            if (draggedItem) {
-                draggedItem.classList.remove('dragging');
-                draggedItem.classList.remove('drag-over');
-                const items = document.querySelectorAll('.habit-item');
-                const newOrder = [];
-                items.forEach(item => {
-                    const idx = parseInt(item.getAttribute('data-index'));
-                    newOrder.push(habits[idx]);
-                });
-                habits = newOrder;
-                saveData();
-                draggedItem = null;
-            }
-        }
-
-        function dragStart(event, index) {
-            draggedItem = event.currentTarget;
-            draggedIndex = index;
-            draggedItem.classList.add('dragging');
-        }
-
-        function dragOver(event) {
-            event.preventDefault();
-            const afterElement = getDragAfterElement(event.clientY);
-            if (afterElement == null) {
-                document.getElementById('habitsList').appendChild(draggedItem);
-            } else {
-                document.getElementById('habitsList').insertBefore(draggedItem, afterElement);
-            }
-            draggedItem.classList.add('drag-over');
-        }
-
-        function getDragAfterElement(y) {
-            const draggableElements = [...document.querySelectorAll('.habit-item:not(.dragging)')];
-            return draggableElements.reduce((closest, child) => {
-                const box = child.getBoundingClientRect();
-                const offset = y - box.top - box.height / 2;
-                if (offset < 0 && offset > closest.offset) {
-                    return { offset: offset, element: child };
-                } else {
-                    return closest;
-                }
-            }, { offset: Number.NEGATIVE_INFINITY }).element;
-        }
-
-        function drop(event, index) {
-            event.preventDefault();
-            draggedItem.classList.remove('drag-over');
-        }
-
-        function dragEnd(event) {
-            draggedItem.classList.remove('dragging');
-            draggedItem.classList.remove('drag-over');
-
-            // Reorder habits array based on DOM
-            const items = document.querySelectorAll('.habit-item');
-            const newOrder = [];
-            items.forEach(item => {
-                const index = parseInt(item.getAttribute('data-index'));
-                newOrder.push(habits[index]);
             });
-            habits = newOrder;
-            saveData();
         }
 
         function toggleHabitToday(id) {
@@ -1183,15 +1096,12 @@
 
         function renderWeeklyPerformance() {
             const container = document.getElementById('weeklyPerformance');
-
             if (habits.length === 0) {
                 container.innerHTML = '<div style="text-align: center; color: var(--text-secondary); padding: 24px;">No habits to track</div>';
                 return;
             }
 
-            // Calculate last 7 days
             const today = new Date();
-            let weekTotal = 0;
             let weekPerformance = [];
 
             habits.forEach(habit => {
@@ -1210,13 +1120,10 @@
                     completions: completionsThisWeek,
                     percentage: Math.round((completionsThisWeek / 7) * 100)
                 });
-                weekTotal += completionsThisWeek;
             });
 
-            // Sort by completions (highest first)
             weekPerformance.sort((a, b) => b.completions - a.completions);
 
-            // Render performance bars
             container.innerHTML = weekPerformance.map(perf => `
                 <div class="progress-bar-container">
                     <div class="progress-bar-label">
@@ -1253,28 +1160,22 @@
 
             const year = calendarDate.getFullYear();
             const month = calendarDate.getMonth();
-
-            // Update month/year display
             const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
                               'July', 'August', 'September', 'October', 'November', 'December'];
             document.getElementById('calendarMonthYear').textContent = `${monthNames[month]} ${year}`;
 
-            // Get first day of month and number of days
             const firstDay = new Date(year, month, 1).getDay();
             const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-            // Create calendar grid
             const grid = document.getElementById('calendarGrid');
             grid.innerHTML = '';
 
-            // Add empty cells for days before month starts
             for (let i = 0; i < firstDay; i++) {
                 const emptyDay = document.createElement('div');
                 emptyDay.style.background = 'transparent';
                 grid.appendChild(emptyDay);
             }
 
-            // Add all days of the month
             for (let day = 1; day <= daysInMonth; day++) {
                 const dayEl = document.createElement('div');
                 const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -1323,10 +1224,8 @@
         }
 
         function saveHabit() {
-            console.log('saveHabit called');
             const name = document.getElementById('habitName').value.trim();
             const category = document.getElementById('habitCategory').value;
-            console.log('Form values - name:', name, 'category:', category, 'color:', selectedColor);
 
             if (!name) {
                 alert('Please enter a habit name');
@@ -1334,16 +1233,13 @@
             }
 
             if (editingHabitId) {
-                // Update existing habit
                 const habit = habits.find(h => h.id === editingHabitId);
                 if (habit) {
                     habit.name = name;
                     habit.category = category;
                     habit.color = selectedColor;
-                    console.log('Habit updated:', habit);
                 }
             } else {
-                // Create new habit
                 const newHabit = {
                     id: Date.now(),
                     name,
@@ -1351,18 +1247,12 @@
                     completed: false,
                     color: selectedColor
                 };
-                console.log('New habit object:', newHabit);
                 habits.push(newHabit);
             }
 
             saveData();
-            console.log('Data saved');
-
             renderHabits();
-            console.log('Habits rendered');
-
             closeModal();
-            console.log('Modal closed');
         }
 
         function editHabit(id) {
@@ -1408,7 +1298,6 @@
                 btn.style.border = '2px solid transparent';
             });
 
-            // Find and style the selected color button
             const buttons = document.querySelectorAll('.color-picker');
             const colorOrder = ['red', 'orange', 'green', 'blue', 'purple'];
             const index = colorOrder.indexOf(selectedColor);
@@ -1431,13 +1320,11 @@
             document.getElementById('notesText').value = notes;
         }
 
-        // Initialize
         loadData();
         renderHabits();
         updateYearProgress();
         updateDayProgress();
 
-        // Update day progress every minute
         setInterval(updateDayProgress, 60000);
     </script>
 </body>
