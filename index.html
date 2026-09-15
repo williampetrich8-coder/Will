@@ -842,9 +842,16 @@
                     <div class="progress-ring-wrapper">
                         <svg class="progress-ring" viewBox="0 0 100 100">
                             <defs>
+                                <linearGradient id="gradientCyan" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#ff3b30;stop-opacity:1" />
+                                    <stop offset="25%" style="stop-color:#ff9500;stop-opacity:1" />
+                                    <stop offset="50%" style="stop-color:#4cd964;stop-opacity:1" />
+                                    <stop offset="75%" style="stop-color:#007aff;stop-opacity:1" />
+                                    <stop offset="100%" style="stop-color:#5956d6;stop-opacity:1" />
+                                </linearGradient>
                                 <linearGradient id="gradientMorning" x1="0%" y1="0%" x2="100%" y2="100%">
                                     <stop offset="0%" style="stop-color:#ff9500;stop-opacity:1" />
-                                    <stop offset="100%" style="stop-color:#ffcc00;stop-opacity:1" />
+                                    <stop offset="100%" style="stop-color:#4cd964;stop-opacity:1" />
                                 </linearGradient>
                                 <linearGradient id="gradientAfternoon" x1="0%" y1="0%" x2="100%" y2="100%">
                                     <stop offset="0%" style="stop-color:#007aff;stop-opacity:1" />
@@ -1177,7 +1184,7 @@
                 status = 'Evening';
             }
 
-            circle.setAttribute('stroke', `url(#${gradientId})`);
+            circle.setAttribute('stroke', 'url(#gradientCyan)');
             document.querySelector('.progress-text .progress-label').textContent = status;
 
             // Calculate time remaining in the day
