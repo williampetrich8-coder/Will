@@ -834,6 +834,15 @@
 
         <!-- Mind Tab -->
         <div id="mind" class="tab-content" style="display: none;">
+            <div class="card">
+                <h3 style="margin-bottom: 16px; font-size: 16px; font-weight: 600;">Essay Ideas</h3>
+                <div style="display: flex; gap: 12px; margin-bottom: 20px;">
+                    <input type="text" id="essayInput" class="form-input" placeholder="New essay idea..." style="flex: 1;">
+                    <button class="btn btn-primary" style="width: auto;" onclick="addEssayIdea()">Add</button>
+                </div>
+                <div id="essayIdeasList"></div>
+            </div>
+
             <div class="empty-state">
                 <div class="empty-state-icon">🧠</div>
                 <div class="empty-state-title">Mind Habits</div>
@@ -1037,6 +1046,7 @@
         let notes = '';
         let wakeUpTime = '06:00';
         let bedTime = '22:00';
+        let essayIdeas = [];
 
         // Load data from localStorage
         function loadData() {
@@ -1048,6 +1058,7 @@
                 notes = data.notes || '';
                 wakeUpTime = data.wakeUpTime || '06:00';
                 bedTime = data.bedTime || '22:00';
+                essayIdeas = data.essayIdeas || [];
             }
             loadNotes();
         }
@@ -1060,7 +1071,8 @@
                 completions: habitCompletions,
                 notes,
                 wakeUpTime,
-                bedTime
+                bedTime,
+                essayIdeas
             }));
         }
 
@@ -1148,10 +1160,50 @@
 
             if (tabName === 'dashboard') {
                 renderHabits();
+            } else if (tabName === 'mind') {
+                renderEssayIdeas();
             } else if (tabName === 'insights') {
                 populateCalendarSelect();
                 renderCalendar();
                 renderWeeklyPerformance();
+            }
+        }
+
+        function renderEssayIdeas() {
+            const list = document.getElementById('essayIdeasList');
+            if (essayIdeas.length === 0) {
+                list.innerHTML = '<div style="text-align: center; color: var(--text-secondary); padding: 20px; font-size: 14px;">No essay ideas yet. Start brainstorming!</div>';
+                return;
+            }
+
+            list.innerHTML = essayIdeas.map((idea, index) => `
+                <div class="habit-item" style="cursor: default;">
+                    <div class="habit-info">
+                        <div class="habit-name">${idea}</div>
+                    </div>
+                    <div class="habit-actions" style="opacity: 1;">
+                        <button class="habit-action-btn" onclick="deleteEssayIdea(${index})">🗑️</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function addEssayIdea() {
+            const input = document.getElementById('essayInput');
+            const idea = input.value.trim();
+            if (idea) {
+                essayIdeas.push(idea);
+                saveData();
+                renderEssayIdeas();
+                input.value = '';
+            }
+        }
+
+        function deleteEssayIdea(index) {
+            if (confirm('Delete this essay idea?')) {
+                essayIdeas.splice(index, 1);
+                saveData();
+                renderEssayIdeas();
             }
         }
 
