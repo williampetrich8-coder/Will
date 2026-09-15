@@ -96,44 +96,6 @@
             transform: scale(1.05);
         }
 
-        /* Quick Stats */
-        .stats-row {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-            margin-bottom: 24px;
-        }
-
-        .mini-stat-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-light);
-            border-radius: 16px;
-            padding: 12px;
-            text-align: center;
-            backdrop-filter: var(--glass-blur);
-            transition: all 0.3s ease;
-        }
-
-        .mini-stat-card:hover {
-            border-color: var(--border-glow);
-        }
-
-        .mini-stat-value {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 20px;
-            font-weight: 700;
-            display: block;
-            color: var(--text-primary);
-        }
-
-        .mini-stat-label {
-            font-size: 10px;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            font-weight: 600;
-        }
-
         /* Tab Navigation Dock */
         .tab-nav {
             display: flex;
@@ -814,22 +776,6 @@
             </div>
         </div>
 
-        <!-- Quick Stats Row -->
-        <div class="stats-row">
-            <div class="mini-stat-card">
-                <span class="mini-stat-value" id="statStreak">0</span>
-                <span class="mini-stat-label">Streak</span>
-            </div>
-            <div class="mini-stat-card">
-                <span class="mini-stat-value" id="statDaily">0%</span>
-                <span class="mini-stat-label">Today</span>
-            </div>
-            <div class="mini-stat-card">
-                <span class="mini-stat-value" id="statWeekly">0%</span>
-                <span class="mini-stat-label">Weekly</span>
-            </div>
-        </div>
-
         <!-- Dashboard Tab -->
         <div id="dashboard" class="tab-content">
             <div class="card">
@@ -1104,54 +1050,9 @@
                 bedTime = data.bedTime || '22:00';
             }
             loadNotes();
-            updateQuickStats();
         }
 
         // Update the Quick Stats Row
-        function updateQuickStats() {
-            const today = new Date().toISOString().split('T')[0];
-
-            // 1. Daily Goal %
-            const totalToday = habits.length;
-            const completedToday = Object.keys(habitCompletions).filter(key => {
-                return key.endsWith('-' + today) && habitCompletions[key];
-            }).length;
-            const dailyPct = totalToday === 0 ? 0 : Math.round((completedToday / totalToday) * 100);
-            document.getElementById('statDaily').textContent = dailyPct + '%';
-
-            // 2. Current Streak
-            let streak = 0;
-            let checkDate = new Date();
-            while (true) {
-                const dateStr = checkDate.toISOString().split('T')[0];
-                const anyCompleted = Object.keys(habitCompletions).some(key => {
-                    return key.endsWith('-' + dateStr) && habitCompletions[key];
-                });
-
-                if (!anyCompleted) break;
-                streak++;
-                checkDate.setDate(checkDate.getDate() - 1);
-            }
-            document.getElementById('statStreak').textContent = streak;
-
-            // 3. Weekly Avg %
-            let totalWeeklyCompletions = 0;
-            let totalWeeklyPossible = 0;
-            for (let i = 0; i < 7; i++) {
-                const date = new Date();
-                date.setDate(date.getDate() - i);
-                const dateStr = date.toISOString().split('T')[0];
-
-                habits.forEach(habit => {
-                    const key = `${habit.id}-${dateStr}`;
-                    if (habitCompletions[key]) totalWeeklyCompletions++;
-                    totalWeeklyPossible++;
-                });
-            }
-            const weeklyAvg = totalWeeklyPossible === 0 ? 0 : Math.round((totalWeeklyCompletions / totalWeeklyPossible) * 100);
-            document.getElementById('statWeekly').textContent = weeklyAvg + '%';
-        }
-
         // Save data to localStorage
         function saveData() {
             localStorage.setItem('habitTrackerData', JSON.stringify({
@@ -1312,7 +1213,6 @@
             saveData();
             renderHabits();
             updateDayProgress();
-            updateQuickStats();
         }
 
         function renderWeeklyPerformance() {
@@ -1491,7 +1391,6 @@
 
             saveData();
             renderHabits();
-            updateQuickStats();
             closeModal();
         }
 
@@ -1516,7 +1415,6 @@
                 habits = habits.filter(h => h.id !== id);
                 saveData();
                 renderHabits();
-                updateQuickStats();
             }
         }
 
