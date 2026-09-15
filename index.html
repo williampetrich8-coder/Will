@@ -375,14 +375,8 @@
         }
 
         .progress-ring-fill {
-            stroke: url(#gradientCyan);
-            animation: pulseGlow 3s infinite ease-in-out;
-        }
-
-        @keyframes pulseGlow {
-            0% { filter: drop-shadow(0 0 2px var(--accent-blue)); }
-            50% { filter: drop-shadow(0 0 10px var(--accent-blue)); }
-            100% { filter: drop-shadow(0 0 2px var(--accent-blue)); }
+            stroke: var(--accent-green);
+            filter: drop-shadow(0 0 5px var(--accent-green));
         }
 
 
@@ -805,6 +799,7 @@
             <div class="header-title">Dashboard</div>
             <div class="header-actions">
                 <button class="icon-btn" onclick="toggleStats()">📊</button>
+                <button class="icon-btn" onclick="openSettingsModal()">⚙️</button>
             </div>
         </div>
 
@@ -998,6 +993,31 @@
         </div>
     </div>
 
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Settings</h2>
+                <button class="close-btn" onclick="closeSettingsModal()">✕</button>
+            </div>
+
+            <form id="settingsForm">
+                <div class="form-group">
+                    <label class="form-label">Wake Up Time</label>
+                    <input type="time" id="wakeUpTime" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Bed Time</label>
+                    <input type="time" id="bedTime" class="form-input" required>
+                </div>
+                <div style="display: flex; gap: 12px; margin-top: 32px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeSettingsModal()">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Add/Edit Habit Modal -->
     <div id="habitModal" class="modal">
         <div class="modal-content">
@@ -1069,6 +1089,8 @@
 
         // Notes
         let notes = '';
+        let wakeUpTime = '06:00';
+        let bedTime = '22:00';
 
         // Load data from localStorage
         function loadData() {
@@ -1078,6 +1100,8 @@
                 habits = data.habits || habits;
                 habitCompletions = data.completions || {};
                 notes = data.notes || '';
+                wakeUpTime = data.wakeUpTime || '06:00';
+                bedTime = data.bedTime || '22:00';
             }
             loadNotes();
             updateQuickStats();
@@ -1133,7 +1157,9 @@
             localStorage.setItem('habitTrackerData', JSON.stringify({
                 habits,
                 completions: habitCompletions,
-                notes
+                notes,
+                wakeUpTime,
+                bedTime
             }));
         }
 
@@ -1155,12 +1181,23 @@
         // Update day progress circle
         function updateDayProgress() {
             const now = new Date();
-            const hours = now.getHours();
-            const minutes = now.getMinutes();
-            const seconds = now.getSeconds();
+            const currentMinutes = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
 
-            const decimalHours = hours + minutes / 60 + seconds / 3600;
-            const dayProgress = (decimalHours / 24) * 100;
+            const [wakeH, wakeM] = wakeUpTime.split(':').map(Number);
+            const wakeMinutes = wakeH * 60 + wakeM;
+
+            const [bedH, bedM] = bedTime.split(':').map(Number);
+            const bedMinutes = bedH * 60 + bedM;
+
+            const totalWindow = bedMinutes - wakeMinutes;
+            const elapsed = currentMinutes - wakeMinutes;
+
+            let dayProgress = 0;
+            if (elapsed > 0 && totalWindow > 0) {
+                dayProgress = Math.min(100, (elapsed / totalWindow) * 100);
+            } else if (currentMinutes >= bedMinutes) {
+                dayProgress = 100;
+            }
 
             const circumference = 251.2;
             const offset = circumference * (1 - dayProgress / 100);
@@ -1169,32 +1206,23 @@
 
             document.getElementById('dayProgressValue').textContent = Math.round(dayProgress) + '%';
 
-            // Dynamic Color and Label based on time of day
-            let gradientId = 'gradientNight';
+            // Dynamic Label based on time of day
+            const hours = now.getHours();
             let status = 'Night';
-
-            if (hours >= 5 && hours < 12) {
-                gradientId = 'gradientMorning';
-                status = 'Morning';
-            } else if (hours >= 12 && hours < 17) {
-                gradientId = 'gradientAfternoon';
-                status = 'Afternoon';
-            } else if (hours >= 17 && hours < 21) {
-                gradientId = 'gradientEvening';
-                status = 'Evening';
-            }
-
-            circle.setAttribute('stroke', 'url(#gradientCyan)');
+            if (hours >= 5 && hours < 12) status = 'Morning';
+            else if (hours >= 12 && hours < 17) status = 'Afternoon';
+            else if (hours >= 17 && hours < 21) status = 'Evening';
             document.querySelector('.progress-text .progress-label').textContent = status;
 
-            // Calculate time remaining in the day
-            const totalSecondsInDay = 24 * 60 * 60;
-            const secondsPassed = (hours * 3600) + (minutes * 60) + seconds;
-            const remainingSeconds = totalSecondsInDay - secondsPassed;
+            // Calculate time remaining until bed time
+            let remainingMinutes = bedMinutes - currentMinutes;
+            if (remainingMinutes < 0) {
+                remainingMinutes = 0;
+            }
 
-            const hRem = Math.floor(remainingSeconds / 3600);
-            const mRem = Math.floor((remainingSeconds % 3600) / 60);
-            const sRem = remainingSeconds % 60;
+            const hRem = Math.floor(remainingMinutes / 60);
+            const mRem = Math.floor(remainingMinutes % 60);
+            const sRem = Math.round((remainingMinutes * 60) % 60);
             const timeRemainingStr = `${hRem}h ${mRem}m ${sRem}s`;
 
             const completedToday = Object.keys(habitCompletions).filter(key => {
@@ -1203,7 +1231,7 @@
             }).length;
 
             document.getElementById('dayProgressDesc').textContent =
-                `${completedToday} habits completed • ${timeRemainingStr} left`;
+                `${completedToday} habits completed • ${timeRemainingStr} until bed`;
 
             requestAnimationFrame(updateDayProgress);
         }
@@ -1414,6 +1442,24 @@
         function closeModal() {
             editingHabitId = null;
             document.getElementById('habitModal').classList.remove('active');
+        }
+
+        function openSettingsModal() {
+            document.getElementById('wakeUpTime').value = wakeUpTime;
+            document.getElementById('bedTime').value = bedTime;
+            document.getElementById('settingsModal').classList.add('active');
+        }
+
+        function closeSettingsModal() {
+            document.getElementById('settingsModal').classList.remove('active');
+        }
+
+        function saveSettings() {
+            wakeUpTime = document.getElementById('wakeUpTime').value;
+            bedTime = document.getElementById('bedTime').value;
+            saveData();
+            closeSettingsModal();
+            updateDayProgress();
         }
 
         function saveHabit() {
