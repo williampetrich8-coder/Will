@@ -147,10 +147,15 @@
             background: rgba(0, 122, 255, 0.2);
             box-shadow: inset 0 0 0 1px var(--accent-blue);
         }
-
+        .tab.active-body {
+            color: var(--text-primary);
+            background: rgba(255, 149, 0, 0.2);
+            box-shadow: inset 0 0 0 1px var(--accent-orange);
+        }
         .tab.active::before {
             display: none;
         }
+
 
         /* Floating Action Button */
         .fab-container {
@@ -805,6 +810,149 @@
         #gradientMagenta { stop:nth-child(1) { stop-color: var(--accent-magenta); } }
         #gradientGreen { stop:nth-child(1) { stop-color: var(--accent-green); } }
         #gradientOrange { stop:nth-child(1) { stop-color: var(--accent-orange); } }
+
+        /* Workout Logger Styles */
+        .workout-nav {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+            padding: 4px;
+            scrollbar-width: none;
+        }
+        .workout-nav::-webkit-scrollbar { display: none; }
+        .workout-tab {
+            padding: 8px 16px;
+            border-radius: 100px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-light);
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+        .workout-tab.active {
+            background: var(--accent-orange);
+            color: var(--bg-dark);
+            border-color: var(--accent-orange);
+            box-shadow: 0 0 15px rgba(255, 149, 0, 0.3);
+        }
+        .exercise-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            padding: 16px;
+            margin-bottom: 16px;
+            backdrop-filter: blur(10px);
+        }
+        .exercise-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+        .exercise-info h4 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+        .exercise-targets {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .set-row {
+            display: grid;
+            grid-template-columns: 30px 1fr 1fr 40px;
+            gap: 10px;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-light);
+        }
+        .set-row:last-child { border-bottom: none; }
+        .set-num {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        .set-input {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-light);
+            border-radius: 6px;
+            color: white;
+            padding: 4px 8px;
+            font-size: 13px;
+            text-align: center;
+            width: 100%;
+            font-family: inherit;
+        }
+        .set-check {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            border: 2px solid var(--border-light);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        .set-check.done {
+            background: var(--accent-orange);
+            border-color: var(--accent-orange);
+            color: white;
+            box-shadow: 0 0 10px rgba(255, 149, 0, 0.4);
+        }
+        .history-chart-container {
+            width: 100%;
+            height: 200px;
+            margin: 20px 0;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        .chart-line {
+            fill: none;
+            stroke: var(--accent-orange);
+            stroke-width: 3;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            filter: drop-shadow(0 0 5px var(--accent-orange));
+        }
+        .chart-point {
+            fill: var(--accent-orange);
+            stroke: white;
+            stroke-width: 2;
+        }
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .stat-tile {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+        }
+        .stat-tile .val {
+            display: block;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+        }
+        .stat-tile .lbl {
+            font-size: 10px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
     </style>
 </head>
 <body onload="initApp()">
@@ -915,27 +1063,17 @@
 
         <!-- Body Tab -->
         <div id="body" class="tab-content" style="display: none;">
-            <div class="card">
-                <div class="progress-ring-container">
-                    <div class="progress-ring-wrapper">
-                        <svg class="progress-ring" viewBox="0 0 100 100">
-                            <circle class="progress-ring-circle progress-ring-bg" cx="50" cy="50" r="40"></circle>
-                            <circle class="progress-ring-circle progress-ring-fill orange" cx="50" cy="50" r="40"
-                                style="stroke-dasharray: 251.2; stroke-dashoffset: 100;"></circle>
-                        </svg>
-                        <div class="progress-text">
-                            <span class="progress-value">60%</span>
-                            <span class="progress-label">This Week</span>
-                        </div>
-                    </div>
-                    <p class="progress-description">Fitness goals on track</p>
-                </div>
+            <div class="workout-nav" id="workoutRoutineNav">
+                <!-- Routines generated here -->
             </div>
-
-            <div class="empty-state">
+            <div id="exerciseList">
+                <!-- Exercises generated here -->
+            </div>
+            <div class="empty-state" id="workoutEmptyState" style="display: none;">
                 <div class="empty-state-icon">💪</div>
-                <div class="empty-state-title">No Body Habits Yet</div>
-                <div class="empty-state-text">Add your first fitness or health habit</div>
+                <div class="empty-state-title">No Workouts Found</div>
+                <div class="empty-state-text">Create a routine to start tracking your progress</div>
+                <button class="btn btn-primary" style="width: auto;" onclick="openRoutineModal()">+ Create Routine</button>
             </div>
         </div>
 
@@ -977,7 +1115,98 @@
         </div>
     </div>
 
+    <!-- Routine Modal -->
+    <div id="routineModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="routineModalTitle">Manage Routine</h2>
+                <button class="close-btn" onclick="closeRoutineModal()">✕</button>
+            </div>
+            <form id="routineForm">
+                <div class="form-group">
+                    <label class="form-label">Routine Name</label>
+                    <input type="text" id="routineName" class="form-input" placeholder="e.g., Push, Pull, Legs" required>
+                </div>
+                <div style="display: flex; gap: 12px; margin-top: 32px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeRoutineModal()">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="routineSubmitBtn" onclick="saveRoutine()">Save Routine</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Exercise Tune Modal -->
+    <div id="exerciseModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Tune Exercise</h2>
+                <button class="close-btn" onclick="closeExerciseModal()">✕</button>
+            </div>
+            <form id="exerciseForm">
+                <div class="form-group">
+                    <label class="form-label">Exercise Name</label>
+                    <input type="text" id="exName" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Target Weight (kg)</label>
+                    <input type="number" step="0.1" id="exWeight" class="form-input" required>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;" class="form-group">
+                    <div>
+                        <label class="form-label">Target Sets</label>
+                        <input type="number" id="exSets" class="form-input" required>
+                    </div>
+                    <div>
+                        <label class="form-label">Target Reps</label>
+                        <input type="number" id="exReps" class="form-input" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Rest Time</label>
+                    <input type="text" id="exRest" class="form-input" placeholder="e.g., 2:30">
+                </div>
+                <div style="display: flex; gap: 12px; margin-top: 32px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeExerciseModal()">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveExercise()">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Exercise History Modal -->
+    <div id="historyModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="historyTitle">Exercise History</h2>
+                <button class="close-btn" onclick="closeHistoryModal()">✕</button>
+            </div>
+            <div class="stat-grid" id="historyStats">
+                <!-- Stats generated here -->
+            </div>
+            <div class="history-chart-container" id="historyChart">
+                <!-- SVG chart generated here -->
+            </div>
+            <div style="margin-top: 20px;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left;">
+                    <thead>
+                        <tr style="color: var(--text-secondary); border-bottom: 1px solid var(--border-light);">
+                            <th style="padding: 8px;">Date</th>
+                            <th style="padding: 8px;">Sets</th>
+                            <th style="padding: 8px;">Reps</th>
+                            <th style="padding: 8px;">Weight</th>
+                            <th style="padding: 8px;">Prog</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTableBody">
+                        <!-- Table rows generated here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <!-- Settings Modal -->
+
     <div id="settingsModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1078,6 +1307,14 @@
         let editingHabitId = null;
         let sortableInstance = null;
 
+        // Workout State
+        let workoutState = {
+            routines: [],
+            exercises: [],
+            logs: [],
+            activeRoutineId: null
+        };
+
         async function initApp() {
             try {
                 // 1. Identify the user via URL or LocalStorage
@@ -1166,6 +1403,8 @@
                 } else {
                     essayIdeas = ideasData ? ideasData.map(i => i.idea) : [];
                 }
+
+                await loadWorkouts();
 
                 loadNotes();
                 renderHabits();
@@ -1457,20 +1696,353 @@
             }).join('');
         }
 
-        async function toggleDateCompletion(habitId, dateStr) {
-            const completionKey = `${habitId}-${dateStr}`;
-            const completed = !habitCompletions[completionKey];
+        async function loadWorkouts() {
+            try {
+                const { data: routinesData, error: routinesError } = await supabaseClient
+                    .from('workout_routines')
+                    .select('*')
+                    .eq('user_id', userId)
+                    .order('position', { ascending: true });
+
+                if (routinesError) throw routinesError;
+                workoutState.routines = routinesData || [];
+
+                const { data: exercisesData, error: exercisesError } = await supabaseClient
+                    .from('workout_exercises')
+                    .select('*')
+                    .eq('user_id', userId)
+                    .order('position', { ascending: true });
+
+                if (exercisesError) throw exercisesError;
+                workoutState.exercises = exercisesData || [];
+
+                const { data: logsData, error: logsError } = await supabaseClient
+                    .from('workout_logs')
+                    .select('*')
+                    .eq('user_id', userId)
+                    .order('date', { ascending: true });
+
+                if (logsError) throw logsError;
+                workoutState.logs = logsData || [];
+
+                renderRoutines();
+                if (workoutState.routines.length > 0 && !workoutState.activeRoutineId) {
+                    switchWorkoutRoutine(workoutState.routines[0].id);
+                } else if (workoutState.routines.length === 0) {
+                    document.getElementById('workoutEmptyState').style.display = 'block';
+                    document.getElementById('workoutRoutineNav').style.display = 'none';
+                    document.getElementById('exerciseList').style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error loading workouts:', error);
+            }
+        }
+
+        function renderRoutines() {
+            const nav = document.getElementById('workoutRoutineNav');
+            if (workoutState.routines.length === 0) return;
+
+            document.getElementById('workoutEmptyState').style.display = 'none';
+            nav.style.display = 'flex';
+            document.getElementById('exerciseList').style.display = 'block';
+
+            nav.innerHTML = workoutState.routines.map(r => `
+                <div class="workout-tab ${workoutState.activeRoutineId === r.id ? 'active' : ''}"
+                     onclick="switchWorkoutRoutine('${r.id}')">
+                    ${r.name}
+                </div>
+            `).join('');
+        }
+
+        function switchWorkoutRoutine(id) {
+            workoutState.activeRoutineId = id;
+            renderRoutines();
+            renderExercises(id);
+        }
+
+        function renderExercises(routineId) {
+            const list = document.getElementById('exerciseList');
+            const exercises = workoutState.exercises.filter(e => e.routine_id === routineId);
+
+            if (exercises.length === 0) {
+                list.innerHTML = `
+                    <div class="card" style="text-align: center; padding: 40px 20px;">
+                        <div style="font-size: 32px; margin-bottom: 12px;">🏋️</div>
+                        <div style="font-weight: 600; margin-bottom: 8px;">No Exercises Yet</div>
+                        <div style="color: var(--text-secondary); font-size: 14px; margin-bottom: 20px;">Add exercises to this routine to start tracking</div>
+                        <button class="btn btn-primary" style="width: auto;" onclick="openExerciseModal('${routineId}')">+ Add Exercise</button>
+                    </div>
+                `;
+                return;
+            }
+
+            const today = new Date().toISOString().split('T')[0];
+
+            list.innerHTML = exercises.map(ex => {
+                const sets = [];
+                for (let i = 0; i < ex.target_sets; i++) {
+                    const log = workoutState.logs.find(l => l.exercise_id === ex.id && l.date === today && l.set_index === i);
+                    sets.push(log || { weight: ex.target_weight, reps: ex.target_reps, completed: false });
+                }
+
+                return `
+                    <div class="exercise-card">
+                        <div class="exercise-header">
+                            <div class="exercise-info">
+                                <h4>${ex.name}</h4>
+                                <div class="exercise-targets">Target: ${ex.target_sets} x ${ex.target_reps} @ ${ex.target_weight}kg</div>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="habit-action-btn" onclick="openExerciseModal('${ex.id}')" title="Tune">⚙️</button>
+                                <button class="habit-action-btn" onclick="openExerciseHistory('${ex.id}')" title="History">📊</button>
+                                <button class="habit-action-btn" onclick="deleteExercise('${ex.id}')" title="Delete">🗑️</button>
+                            </div>
+                        </div>
+                        <div class="sets-container">
+                            ${sets.map((set, idx) => `
+                                <div class="set-row">
+                                    <span class="set-num">${idx + 1}</span>
+                                    <input type="number" step="0.1" class="set-input" value="${set.weight}"
+                                           onchange="logSet('${ex.id}', ${idx}, this.value, ${set.reps})">
+                                    <input type="number" class="set-input" value="${set.reps}"
+                                           onchange="logSet('${ex.id}', ${idx}, ${set.weight}, this.value)">
+                                    <div class="set-check ${set.completed ? 'done' : ''}"
+                                         onclick="toggleSetCompletion('${ex.id}', ${idx})">✓</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function logSet(exerciseId, setIndex, weight, reps) {
+            const today = new Date().toISOString().split('T')[0];
+            const { error } = await supabaseClient
+                .from('workout_logs')
+                .upsert({
+                    user_id: userId,
+                    exercise_id: exerciseId,
+                    date: today,
+                    set_index: setIndex,
+                    weight: parseFloat(weight),
+                    reps: parseInt(reps)
+                }, { onConflict: 'exercise_id,date,set_index' });
+
+            if (error) {
+                console.error('Error logging set:', error);
+            } else {
+                const logIdx = workoutState.logs.findIndex(l => l.exercise_id === exerciseId && l.date === today && l.set_index === setIndex);
+                if (logIdx > -1) {
+                    workoutState.logs[logIdx] = { ...workoutState.logs[logIdx], weight: parseFloat(weight), reps: parseInt(reps) };
+                } else {
+                    workoutState.logs.push({ exercise_id: exerciseId, date: today, set_index: setIndex, weight: parseFloat(weight), reps: parseInt(reps) });
+                }
+            }
+        }
+
+        async function toggleSetCompletion(exerciseId, setIndex) {
+            const today = new Date().toISOString().split('T')[0];
+            const log = workoutState.logs.find(l => l.exercise_id === exerciseId && l.date === today && l.set_index === setIndex);
+            const completed = !log?.completed;
 
             const { error } = await supabaseClient
-                .from('completions')
-                .upsert({ user_id: userId, habit_id: habitId, date: dateStr, completed }, { onConflict: 'habit_id,date' });
+                .from('workout_logs')
+                .upsert({
+                    user_id: userId,
+                    exercise_id: exerciseId,
+                    date: today,
+                    set_index: setIndex,
+                    weight: log?.weight || 0,
+                    reps: log?.reps || 0,
+                    completed: completed
+                }, { onConflict: 'exercise_id,date,set_index' });
+
+            if (error) {
+                console.error('Error toggling set:', error);
+            } else {
+                if (log) log.completed = completed;
+                else workoutState.logs.push({ exercise_id: exerciseId, date: today, set_index: setIndex, weight: 0, reps: 0, completed });
+                renderExercises(workoutState.activeRoutineId);
+            }
+        }
+
+        function openRoutineModal() {
+            editingRoutineId = null;
+            document.getElementById('routineForm').reset();
+            document.getElementById('routineModalTitle').textContent = 'Create Routine';
+            document.getElementById('routineSubmitBtn').textContent = 'Save Routine';
+            document.getElementById('routineModal').classList.add('active');
+        }
+
+        async function saveRoutine() {
+            const name = document.getElementById('routineName').value.trim();
+            if (!name) return alert('Please enter a routine name');
+
+            const { error } = await supabaseClient
+                .from('workout_routines')
+                .insert({ user_id: userId, name });
 
             if (error) return alert(error.message);
-
-            habitCompletions[completionKey] = completed;
-            renderMonthlyProgress();
-            updateDayProgress();
+            await loadWorkouts();
+            closeRoutineModal();
         }
+
+        function closeRoutineModal() {
+            document.getElementById('routineModal').classList.remove('active');
+        }
+
+        function openExerciseModal(id) {
+            const routineId = id;
+            editingExerciseId = null;
+            document.getElementById('exerciseForm').reset();
+
+            if (id && workoutState.exercises.find(e => e.id === id)) {
+                const ex = workoutState.exercises.find(e => e.id === id);
+                editingExerciseId = id;
+                document.getElementById('exName').value = ex.name;
+                document.getElementById('exWeight').value = ex.target_weight;
+                document.getElementById('exSets').value = ex.target_sets;
+                document.getElementById('exReps').value = ex.target_reps;
+                document.getElementById('exRest').value = ex.rest_time;
+            } else {
+                // It's a new exercise for this routine
+                workoutState.tempRoutineId = id;
+            }
+
+            document.getElementById('exerciseModal').classList.add('active');
+        }
+
+        async function saveExercise() {
+            const name = document.getElementById('exName').value.trim();
+            const weight = parseFloat(document.getElementById('exWeight').value);
+            const sets = parseInt(document.getElementById('exSets').value);
+            const reps = parseInt(document.getElementById('exReps').value);
+            const rest = document.getElementById('exRest').value;
+
+            if (!name) return alert('Please enter an exercise name');
+
+            const data = {
+                user_id: userId,
+                name,
+                target_weight: weight,
+                target_sets: sets,
+                target_reps: reps,
+                rest_time: rest
+            };
+
+            if (editingExerciseId) {
+                const { error } = await supabaseClient
+                    .from('workout_exercises')
+                    .update(data)
+                    .eq('id', editingExerciseId);
+                if (error) return alert(error.message);
+            } else {
+                const routineId = workoutState.tempRoutineId;
+                const { error } = await supabaseClient
+                    .from('workout_exercises')
+                    .insert({ ...data, routine_id: routineId });
+                if (error) return alert(error.message);
+            }
+
+            await loadWorkouts();
+            closeExerciseModal();
+        }
+
+        function closeExerciseModal() {
+            document.getElementById('exerciseModal').classList.remove('active');
+        }
+
+        async function openExerciseHistory(id) {
+            const ex = workoutState.exercises.find(e => e.id === id);
+            if (!ex) return;
+
+            document.getElementById('historyTitle').textContent = ex.name;
+            document.getElementById('historyModal').classList.add('active');
+
+            const logs = workoutState.logs.filter(l => l.exercise_id === id);
+
+            // Simple Stats
+            const totalSessions = new Set(logs.map(l => l.date)).size;
+            const bestWeight = logs.length > 0 ? Math.max(...logs.map(l => l.weight)) : 0;
+
+            document.getElementById('historyStats').innerHTML = `
+                <div class="stat-tile"><span class="val">${totalSessions}</span><span class="lbl">Sessions</span></div>
+                <div class="stat-tile"><span class="val">${bestWeight}kg</span><span class="lbl">Best</span></div>
+                <div class="stat-tile"><span class="val">${logs.length}</span><span class="lbl">Total Sets</span></div>
+            `;
+
+            // Chart
+            renderHistoryChart(logs);
+
+            // Table
+            const groupedLogs = {};
+            logs.forEach(l => {
+                if (!groupedLogs[l.date]) groupedLogs[l.date] = { sets: 0, reps: 0, weight: 0 };
+                groupedLogs[l.date].sets++;
+                groupedLogs[l.date].reps += l.reps;
+                groupedLogs[l.date].weight = Math.max(groupedLogs[l.date].weight, l.weight);
+            });
+
+            const sortedDates = Object.keys(groupedLogs).sort().reverse();
+            document.getElementById('historyTableBody').innerHTML = sortedDates.map(date => {
+                const g = groupedLogs[date];
+                return `
+                    <tr style="border-bottom: 1px solid var(--border-light);">
+                        <td style="padding: 8px;">${date}</td>
+                        <td style="padding: 8px;">${g.sets}</td>
+                        <td style="padding: 8px;">${g.reps}</td>
+                        <td style="padding: 8px;">${g.weight}kg</td>
+                        <td style="padding: 8px; color: var(--accent-green);">+</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderHistoryChart(logs) {
+            const container = document.getElementById('historyChart');
+            if (logs.length < 2) {
+                container.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-secondary);">Not enough data to chart</div>';
+                return;
+            }
+
+            const weights = logs.map(l => l.weight);
+            const maxW = Math.max(...weights);
+            const minW = Math.min(...weights);
+            const range = maxW - minW || 1;
+
+            const width = 300;
+            const height = 150;
+            const points = logs.map((l, i) => {
+                const x = (i / (logs.length - 1)) * width;
+                const y = height - ((l.weight - minW) / range) * height;
+                return `${x},${y}`;
+            }).join(' ');
+
+            container.innerHTML = `
+                <svg viewBox="0 0 ${width} ${height}" style="width: 100%; height: 100%;">
+                    <polyline points="${points}" class="chart-line" />
+                    ${logs.map((l, i) => {
+                        const x = (i / (logs.length - 1)) * width;
+                        const y = height - ((l.weight - minW) / range) * height;
+                        return `<circle cx="${x}" cy="${y}" r="3" class="chart-point" />`;
+                    }).join('')}
+                </svg>
+            `;
+        }
+
+        function closeHistoryModal() {
+            document.getElementById('historyModal').classList.remove('active');
+        }
+
+        async function deleteExercise(id) {
+            if (!confirm('Delete this exercise?')) return;
+            const { error } = await supabaseClient.from('workout_exercises').delete().eq('id', id);
+            if (error) return alert(error.message);
+            await loadWorkouts();
+            renderExercises(workoutState.activeRoutineId);
+        }
+
 
         function openAddModal() {
             editingHabitId = null;
