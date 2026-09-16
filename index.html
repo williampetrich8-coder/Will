@@ -1312,7 +1312,7 @@
                 const completedToday = habitCompletions[completionKey];
                 return `
                     <div class="habit-item ${completedToday ? 'completed-goal' : ''}" data-id="${habit.id}">
-                        <div class="habit-checkbox ${completedToday ? 'checked' : ''}" onclick="toggleHabitToday(${habit.id})">
+                        <div class="habit-checkbox ${completedToday ? 'checked' : ''}" onclick="toggleHabitToday('${habit.id}')">
                             ${completedToday ? '✓' : ''}
                         </div>
                         <div class="habit-info">
@@ -1323,8 +1323,8 @@
                             </div>
                         </div>
                         <div class="habit-actions">
-                            <button class="habit-action-btn" onclick="editHabit(${habit.id})">✏️</button>
-                            <button class="habit-action-btn" onclick="deleteHabit(${habit.id})">🗑️</button>
+                            <button class="habit-action-btn" onclick="editHabit('${habit.id}')">✏️</button>
+                            <button class="habit-action-btn" onclick="deleteHabit('${habit.id}')">🗑️</button>
                         </div>
                     </div>
                 `;
@@ -1340,7 +1340,7 @@
                     const updates = [];
 
                     items.forEach((item, index) => {
-                        const id = parseInt(item.getAttribute('data-id'));
+                        const id = item.getAttribute('data-id');
                         updates.push({ id: id, position: index });
                     });
 
@@ -1358,7 +1358,7 @@
 
                     const newOrder = [];
                     items.forEach((item, index) => {
-                        const id = parseInt(item.getAttribute('data-id'));
+                        const id = item.getAttribute('data-id');
                         const habit = habits.find(h => h.id === id);
                         if (habit) {
                             habit.position = index;
@@ -1410,7 +1410,7 @@
                     const color = isCompleted ? colorMap[habit.color] : 'rgba(255, 255, 255, 0.1)';
                     gridHtml += `<div class="month-day ${isCompleted ? 'completed' : ''}"
                                       style="background-color: ${color}"
-                                      onclick="toggleDateCompletion(${habit.id}, '${dateStr}')"></div>`;
+                                      onclick="toggleDateCompletion('${habit.id}', '${dateStr}')"></div>`;
                 }
                 return `
                     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 12px;">
@@ -1518,7 +1518,7 @@
         }
 
         function editHabit(id) {
-            const habit = habits.find(h => h.id === id);
+            const habit = habits.find(h => String(h.id) === String(id));
             if (!habit) return;
             editingHabitId = id;
             selectedColor = habit.color;
