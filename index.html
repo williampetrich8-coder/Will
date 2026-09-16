@@ -1354,8 +1354,9 @@
             }
             sortableInstance = new Sortable(habitsList, {
                 animation: 150,
-                delay: 200,
+                delay: 150,
                 delayOnTouchOnly: true,
+                forceFallback: true,
                 ghostClass: 'sortable-ghost',
                 onEnd: async function() {
                     const items = habitsList.querySelectorAll('.habit-item');
