@@ -341,7 +341,6 @@
             filter: drop-shadow(0 0 5px var(--accent-green));
         }
 
-
         .progress-ring-fill.magenta {
             stroke: url(#gradientMagenta);
         }
@@ -747,6 +746,28 @@
             }
         }
 
+        /* Monthly Progress Styles */
+        .month-grid {
+            display: flex;
+            gap: 3px;
+            flex-wrap: wrap;
+            max-width: 250px;
+        }
+
+        .month-day {
+            width: 8px;
+            height: 8px;
+            border-radius: 2px;
+            background: rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .month-day:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.2);
+        }
+
         /* SVG Gradients */
         #gradientCyan { stop:nth-child(1) { stop-color: var(--accent-cyan); } }
         #gradientMagenta { stop:nth-child(1) { stop-color: var(--accent-magenta); } }
@@ -826,6 +847,11 @@
             </div>
 
             <div class="card">
+                <h3 style="margin-bottom: 16px; font-size: 16px; font-weight: 600;">Monthly Progress</h3>
+                <div id="monthlyProgressList"></div>
+            </div>
+
+            <div class="card">
                 <h3 style="margin-bottom: 16px; font-size: 16px; font-weight: 600;">Notes</h3>
                 <textarea id="notesText" class="form-input" placeholder="Add your thoughts, reflections, or reminders..." style="resize: vertical; min-height: 120px; font-family: inherit;"></textarea>
                 <button class="btn btn-secondary" style="width: 100%; margin-top: 12px;" onclick="saveNotes()">Save Notes</button>
@@ -902,39 +928,6 @@
             </div>
         </div>
 
-        <!-- Insights Tab -->
-        <div id="insights" class="tab-content" style="display: none;">
-            <div class="card">
-                <h3 style="margin-bottom: 20px; font-size: 16px; font-weight: 600;">Weekly Performance</h3>
-                <div id="weeklyPerformance"></div>
-            </div>
-
-            <div class="card">
-                <h3 style="margin-bottom: 16px; font-size: 16px; font-weight: 600;">Habit Calendar</h3>
-                <div style="margin-bottom: 16px;">
-                    <label class="form-label" style="margin-bottom: 8px;">Select Habit</label>
-                    <select id="calendarHabitSelect" class="form-select" onchange="renderCalendar()">
-                        <option value="">-- Choose a habit --</option>
-                    </select>
-                </div>
-                <div class="calendar-nav">
-                    <button class="icon-btn" style="width: 32px; height: 32px;" onclick="previousMonth()">←</button>
-                    <span class="calendar-date" id="calendarMonthYear"></span>
-                    <button class="icon-btn" style="width: 32px; height: 32px;" onclick="nextMonth()">→</button>
-                </div>
-                <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 12px;">
-                    <div style="text-align: center; font-size: 11px; font-weight: 600; color: var(--text-secondary); padding: 4px;">M</div>
-                    <div style="text-align: center; font-size: 11px; font-weight: 600; color: var(--text-secondary); padding: 4px;">T</div>
-                    <div style="text-align: center; font-size: 11px; font-weight: 600; color: var(--text-secondary); padding: 4px;">W</div>
-                    <div style="text-align: center; font-size: 11px; font-weight: 600; color: var(--text-secondary); padding: 4px;">T</div>
-                    <div style="text-align: center; font-size: 11px; font-weight: 600; color: var(--text-secondary); padding: 4px;">F</div>
-                    <div style="text-align: center; font-size: 11px; font-weight: 600; color: var(--text-secondary); padding: 4px;">S</div>
-                    <div style="text-align: center; font-size: 11px; font-weight: 600; color: var(--text-secondary); padding: 4px;">S</div>
-                </div>
-                <div id="calendarGrid" class="calendar-grid" style="gap: 4px;"></div>
-            </div>
-        </div>
-
         <!-- Tab Navigation Bottom -->
         <div class="fab-container">
             <button class="fab" onclick="openAddModal()">+</button>
@@ -944,7 +937,6 @@
             <button class="tab" onclick="switchTab(event, 'mind')">🧠<br>Mind</button>
             <button class="tab" onclick="switchTab(event, 'body')">💪<br>Body</button>
             <button class="tab" onclick="switchTab(event, 'soul')">✨<br>Soul</button>
-            <button class="tab" onclick="switchTab(event, 'insights')">📈<br>Insights</button>
         </div>
     </div>
 
@@ -1063,7 +1055,6 @@
             loadNotes();
         }
 
-        // Update the Quick Stats Row
         // Save data to localStorage
         function saveData() {
             localStorage.setItem('habitTrackerData', JSON.stringify({
@@ -1160,12 +1151,9 @@
 
             if (tabName === 'dashboard') {
                 renderHabits();
+                renderMonthlyProgress();
             } else if (tabName === 'mind') {
                 renderEssayIdeas();
-            } else if (tabName === 'insights') {
-                populateCalendarSelect();
-                renderCalendar();
-                renderWeeklyPerformance();
             }
         }
 
@@ -1238,10 +1226,9 @@
                 `;
             }).join('');
 
-            // Initialize SortableJS for drag-and-drop reordering
             new Sortable(habitsList, {
                 animation: 150,
-                delay: 500, // Requires holding down for 500ms to drag
+                delay: 500,
                 delayOnTouchOnly: true,
                 ghostClass: 'sortable-ghost',
                 onEnd: function() {
@@ -1264,121 +1251,62 @@
             habitCompletions[completionKey] = !habitCompletions[completionKey];
             saveData();
             renderHabits();
+            renderMonthlyProgress();
             updateDayProgress();
         }
 
-        function renderWeeklyPerformance() {
-            const container = document.getElementById('weeklyPerformance');
+        function renderMonthlyProgress() {
+            const container = document.getElementById('monthlyProgressList');
             if (habits.length === 0) {
                 container.innerHTML = '<div style="text-align: center; color: var(--text-secondary); padding: 24px;">No habits to track</div>';
                 return;
             }
 
-            const today = new Date();
-            let weekPerformance = [];
-
-            habits.forEach(habit => {
-                let completionsThisWeek = 0;
-                for (let i = 0; i < 7; i++) {
-                    const date = new Date(today);
-                    date.setDate(date.getDate() - i);
-                    const dateStr = date.toISOString().split('T')[0];
-                    const completionKey = `${habit.id}-${dateStr}`;
-                    if (habitCompletions[completionKey]) {
-                        completionsThisWeek++;
-                    }
-                }
-                weekPerformance.push({
-                    name: habit.name,
-                    completions: completionsThisWeek,
-                    percentage: Math.round((completionsThisWeek / 7) * 100)
-                });
-            });
-
-            weekPerformance.sort((a, b) => b.completions - a.completions);
-
-            container.innerHTML = weekPerformance.map(perf => `
-                <div class="progress-bar-container">
-                    <div class="progress-bar-label">
-                        <span>${perf.name}</span>
-                        <span style="color: var(--accent-green);">${perf.completions}/7</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-bar-fill green" style="width: ${perf.percentage}%;"></div>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function populateCalendarSelect() {
-            const select = document.getElementById('calendarHabitSelect');
-            const currentValue = select.value;
-            select.innerHTML = '<option value="">-- Choose a habit --</option>';
-            habits.forEach(habit => {
-                const option = document.createElement('option');
-                option.value = habit.id;
-                option.textContent = habit.name;
-                select.appendChild(option);
-            });
-            select.value = currentValue;
-        }
-
-        function renderCalendar() {
-            const habitId = document.getElementById('calendarHabitSelect').value;
-            if (!habitId) {
-                document.getElementById('calendarGrid').innerHTML = '';
-                document.getElementById('calendarMonthYear').textContent = '';
-                return;
-            }
-
-            const year = calendarDate.getFullYear();
-            const month = calendarDate.getMonth();
-            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
-                              'July', 'August', 'September', 'October', 'November', 'December'];
-            document.getElementById('calendarMonthYear').textContent = `${monthNames[month]} ${year}`;
-
-            const firstDay = new Date(year, month, 1).getDay();
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = now.getMonth();
             const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-            const grid = document.getElementById('calendarGrid');
-            grid.innerHTML = '';
+            const colorMap = {
+                red: '#ff3b30',
+                orange: '#ff9500',
+                green: '#4cd964',
+                blue: '#007aff',
+                purple: '#5956d6'
+            };
 
-            for (let i = 0; i < firstDay; i++) {
-                const emptyDay = document.createElement('div');
-                emptyDay.style.background = 'transparent';
-                grid.appendChild(emptyDay);
-            }
+            container.innerHTML = habits.map(habit => {
+                let gridHtml = '';
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    const completionKey = `${habit.id}-${dateStr}`;
+                    const isCompleted = habitCompletions[completionKey];
+                    const color = isCompleted ? colorMap[habit.color] : 'rgba(255, 255, 255, 0.1)';
+                    gridHtml += `<div class="month-day ${isCompleted ? 'completed' : ''}"
+                                      style="background-color: ${color}"
+                                      onclick="toggleDateCompletion(${habit.id}, '${dateStr}')"></div>`;
+                }
 
-            for (let day = 1; day <= daysInMonth; day++) {
-                const dayEl = document.createElement('div');
-                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                const completionKey = `${habitId}-${dateStr}`;
-                const isCompleted = habitCompletions[completionKey];
-
-                dayEl.className = `calendar-day ${isCompleted ? 'active' : ''}`;
-                dayEl.textContent = day;
-                dayEl.style.cursor = 'pointer';
-                dayEl.onclick = () => toggleDateCompletion(habitId, dateStr);
-
-                grid.appendChild(dayEl);
-            }
+                return `
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 12px;">
+                        <div style="display: flex; align-items: center; gap: 8px; min-width: 120px;">
+                            <span class="color-badge ${habit.color}"></span>
+                            <span style="font-size: 14px; font-weight: 600;">${habit.name}</span>
+                        </div>
+                        <div class="month-grid">
+                            ${gridHtml}
+                        </div>
+                    </div>
+                `;
+            }).join('');
         }
 
         function toggleDateCompletion(habitId, dateStr) {
             const completionKey = `${habitId}-${dateStr}`;
             habitCompletions[completionKey] = !habitCompletions[completionKey];
             saveData();
-            renderCalendar();
-        }
-
-        function previousMonth() {
-            calendarDate = new Date(calendarDate.getFullYear(), calendarDate.getMonth() - 1, 1);
-            renderCalendar();
-        }
-
-        function nextMonth() {
-            calendarDate = new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 1);
-            renderCalendar();
+            renderMonthlyProgress();
+            updateDayProgress();
         }
 
         function openAddModal() {
@@ -1443,6 +1371,7 @@
 
             saveData();
             renderHabits();
+            renderMonthlyProgress();
             closeModal();
         }
 
@@ -1467,6 +1396,7 @@
                 habits = habits.filter(h => h.id !== id);
                 saveData();
                 renderHabits();
+                renderMonthlyProgress();
             }
         }
 
@@ -1513,6 +1443,7 @@
 
         loadData();
         renderHabits();
+        renderMonthlyProgress();
         updateYearProgress();
         updateDayProgress();
     </script>
