@@ -1341,7 +1341,7 @@
 
                     items.forEach((item, index) => {
                         const id = item.getAttribute('data-id');
-                        updates.push({ id: id, position: index });
+                        updates.push({ id: id, position: index, user_id: userId });
                     });
 
                     const { error } = await supabaseClient
