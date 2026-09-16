@@ -1076,6 +1076,7 @@
         let selectedColor = 'red';
         let calendarDate = new Date();
         let editingHabitId = null;
+        let sortableInstance = null;
 
         async function initApp() {
             try {
@@ -1108,54 +1109,72 @@
         }
 
         async function loadData() {
-            // Fetch Profile
-            const { data: profile } = await supabaseClient
-                .from('profiles')
-                .select('*')
-                .eq('id', userId)
-                .single();
+            try {
+                // Fetch Profile
+                const { data: profile, error: profileError } = await supabaseClient
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', userId)
+                    .single();
 
-            if (profile) {
-                notes = profile.notes || '';
-                wakeUpTime = profile.wake_up_time || '06:00';
-                bedTime = profile.bed_time || '22:00';
+                if (profileError) {
+                    console.error('Error fetching profile:', profileError);
+                } else if (profile) {
+                    notes = profile.notes || '';
+                    wakeUpTime = profile.wake_up_time || '06:00';
+                    bedTime = profile.bed_time || '22:00';
+                }
+
+                // Fetch Habits
+                const { data: habitsData, error: habitsError } = await supabaseClient
+                    .from('habits')
+                    .select('*')
+                    .eq('user_id', userId)
+                    .order('position', { ascending: true });
+
+                if (habitsError) {
+                    console.error('Error fetching habits:', habitsError);
+                } else {
+                    habits = habitsData || [];
+                }
+
+                // Fetch Completions
+                const { data: completionsData, error: completionsError } = await supabaseClient
+                    .from('completions')
+                    .select('habit_id, date, completed')
+                    .eq('user_id', userId);
+
+                if (completionsError) {
+                    console.error('Error fetching completions:', completionsError);
+                } else {
+                    habitCompletions = {};
+                    if (completionsData) {
+                        completionsData.forEach(c => {
+                            habitCompletions[`${c.habit_id}-${c.date}`] = c.completed;
+                        });
+                    }
+                }
+
+                // Fetch Essay Ideas
+                const { data: ideasData, error: ideasError } = await supabaseClient
+                    .from('essay_ideas')
+                    .select('idea')
+                    .eq('user_id', userId);
+
+                if (ideasError) {
+                    console.error('Error fetching essay ideas:', ideasError);
+                } else {
+                    essayIdeas = ideasData ? ideasData.map(i => i.idea) : [];
+                }
+
+                loadNotes();
+                renderHabits();
+                renderMonthlyProgress();
+                updateYearProgress();
+                updateDayProgress();
+            } catch (err) {
+                console.error('Unexpected error during loadData:', err);
             }
-
-            // Fetch Habits
-            const { data: habitsData } = await supabaseClient
-                .from('habits')
-                .select('*')
-                .eq('user_id', userId)
-                .order('position', { ascending: true });
-
-            habits = habitsData || [];
-
-            // Fetch Completions
-            const { data: completionsData } = await supabaseClient
-                .from('completions')
-                .select('habit_id, date, completed')
-                .eq('user_id', userId);
-
-            habitCompletions = {};
-            if (completionsData) {
-                completionsData.forEach(c => {
-                    habitCompletions[`${c.habit_id}-${c.date}`] = c.completed;
-                });
-            }
-
-            // Fetch Essay Ideas
-            const { data: ideasData } = await supabaseClient
-                .from('essay_ideas')
-                .select('idea')
-                .eq('user_id', userId);
-
-            essayIdeas = ideasData ? ideasData.map(i => i.idea) : [];
-
-            loadNotes();
-            renderHabits();
-            renderMonthlyProgress();
-            updateYearProgress();
-            updateDayProgress();
         }
 
         function loadNotes() {
@@ -1330,7 +1349,10 @@
                 `;
             }).join('');
 
-            new Sortable(habitsList, {
+            if (sortableInstance) {
+                sortableInstance.destroy();
+            }
+            sortableInstance = new Sortable(habitsList, {
                 animation: 150,
                 delay: 200,
                 delayOnTouchOnly: true,
@@ -1369,7 +1391,7 @@
                     const newOrder = [];
                     items.forEach((item, index) => {
                         const id = item.getAttribute('data-id');
-                        const habit = habits.find(h => h.id === id);
+                        const habit = habits.find(h => String(h.id) === String(id));
                         if (habit) {
                             habit.position = index;
                             newOrder.push(habit);
