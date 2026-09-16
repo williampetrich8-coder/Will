@@ -1122,7 +1122,7 @@
         // Supabase Configuration
         const SUPABASE_URL = 'https://mwwsmyeoiwxcjvpaprtr.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_2EuExUKps8pR8Ia-bNKhTA_psbcFwys';
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         // App State
         let habits = [];
@@ -1139,7 +1139,7 @@
 
         async function initApp() {
             try {
-                const { data: { session } } = await supabase.auth.getSession();
+                const { data: { session } } = await supabaseClient.auth.getSession();
                 if (session) {
                     currentUser = session.user;
                     await loadData();
@@ -1171,9 +1171,9 @@
             try {
                 let result;
                 if (authMode === 'login') {
-                    result = await supabase.auth.signInWithPassword({ email, password });
+                    result = await supabaseClient.auth.signInWithPassword({ email, password });
                 } else {
-                    result = await supabase.auth.signUp({ email, password });
+                    result = await supabaseClient.auth.signUp({ email, password });
                 }
 
                 if (result.error) throw result.error;
@@ -1182,7 +1182,7 @@
                 currentUser = user;
 
                 // Ensure profile exists
-                await supabase.from('profiles').upsert({
+                await supabaseClient.from('profiles').upsert({
                     id: user.id,
                     updated_at: new Date().toISOString()
                 });
@@ -1195,7 +1195,7 @@
         }
 
         async function signOut() {
-            await supabase.auth.signOut();
+            await supabaseClient.auth.signOut();
             location.reload();
         }
 
@@ -1203,7 +1203,7 @@
             const userId = currentUser.id;
 
             // Fetch Profile
-            const { data: profile } = await supabase
+            const { data: profile } = await supabaseClient
                 .from('profiles')
                 .select('*')
                 .eq('id', userId)
@@ -1216,7 +1216,7 @@
             }
 
             // Fetch Habits
-            const { data: habitsData } = await supabase
+            const { data: habitsData } = await supabaseClient
                 .from('habits')
                 .select('*')
                 .eq('user_id', userId);
@@ -1224,23 +1224,25 @@
             habits = habitsData || [];
 
             // Fetch Completions
-            const { data: completionsData } = await supabase
+            const { data: completionsData } = await supabaseClient
                 .from('completions')
                 .select('habit_id, date, completed')
                 .eq('user_id', userId);
 
             habitCompletions = {};
-            completionsData.forEach(c => {
-                habitCompletions[`${c.habit_id}-${c.date}`] = c.completed;
-            });
+            if (completionsData) {
+                completionsData.forEach(c => {
+                    habitCompletions[`${c.habit_id}-${c.date}`] = c.completed;
+                });
+            }
 
             // Fetch Essay Ideas
-            const { data: ideasData } = await supabase
+            const { data: ideasData } = await supabaseClient
                 .from('essay_ideas')
                 .select('idea')
                 .eq('user_id', userId);
 
-            essayIdeas = ideasData.map(i => i.idea) || [];
+            essayIdeas = ideasData ? ideasData.map(i => i.idea) : [];
 
             loadNotes();
             renderHabits();
@@ -1358,7 +1360,7 @@
             const idea = input.value.trim();
             if (!idea) return;
 
-            const { error } = await supabase
+            const { error } = await supabaseClient
                 .from('essay_ideas')
                 .insert({ user_id: currentUser.id, idea });
 
@@ -1372,15 +1374,15 @@
         async function deleteEssayIdea(index) {
             if (!confirm('Delete this essay idea?')) return;
 
-            // Need the ID from the database. For simplicity, we'll re-fetch or use a temporary local ID.
-            // Better: fetch essay ideas with their IDs.
-            const { data: ideas } = await supabase
+            const { data: ideas } = await supabaseClient
                 .from('essay_ideas')
                 .select('id')
                 .eq('user_id', currentUser.id);
 
+            if (!ideas || !ideas[index]) return;
+
             const id = ideas[index].id;
-            const { error } = await supabase
+            const { error } = await supabaseClient
                 .from('essay_ideas')
                 .delete()
                 .eq('id', id);
@@ -1444,7 +1446,7 @@
             const completionKey = `${id}-${today}`;
             const completed = !habitCompletions[completionKey];
 
-            const { error } = await supabase
+            const { error } = await supabaseClient
                 .from('completions')
                 .upsert({ user_id: currentUser.id, habit_id: id, date: today, completed }, { onConflict: 'habit_id,date' });
 
@@ -1497,7 +1499,7 @@
             const completionKey = `${habitId}-${dateStr}`;
             const completed = !habitCompletions[completionKey];
 
-            const { error } = await supabase
+            const { error } = await supabaseClient
                 .from('completions')
                 .upsert({ user_id: currentUser.id, habit_id: habitId, date: dateStr, completed }, { onConflict: 'habit_id,date' });
 
@@ -1537,7 +1539,7 @@
             const wakeUp = document.getElementById('wakeUpTime').value;
             const bed = document.getElementById('bedTime').value;
 
-            const { error } = await supabase
+            const { error } = await supabaseClient
                 .from('profiles')
                 .update({ wake_up_time: wakeUp, bed_time: bed })
                 .eq('id', currentUser.id);
@@ -1556,13 +1558,13 @@
             if (!name) return alert('Please enter a habit name');
 
             if (editingHabitId) {
-                const { error } = await supabase
+                const { error } = await supabaseClient
                     .from('habits')
                     .update({ name, category, color: selectedColor })
                     .eq('id', editingHabitId);
                 if (error) return alert(error.message);
             } else {
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('habits')
                     .insert({ user_id: currentUser.id, name, category, color: selectedColor })
                     .select();
@@ -1589,7 +1591,7 @@
 
         async function deleteHabit(id) {
             if (!confirm('Delete this habit?')) return;
-            const { error } = await supabase.from('habits').delete().eq('id', id);
+            const { error } = await supabaseClient.from('habits').delete().eq('id', id);
             if (error) return alert(error.message);
             await loadData();
         }
@@ -1620,178 +1622,13 @@
 
         async function saveNotes() {
             const notesText = document.getElementById('notesText').value;
-            const { error } = await supabase
+            const { error } = await supabaseClient
                 .from('profiles')
                 .update({ notes: notesText })
                 .eq('id', currentUser.id);
             if (error) return alert(error.message);
             notes = notesText;
         }
-    </script>
- `<div class="month-day ${isCompleted ? 'completed' : ''}"
-                                      style="background-color: ${color}"
-                                      onclick="toggleDateCompletion(${habit.id}, '${dateStr}')"></div>`;
-                }
-
-                return `
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 12px;">
-                        <div style="display: flex; align-items: center; gap: 8px; min-width: 120px;">
-                            <span class="color-badge ${habit.color}"></span>
-                            <span style="font-size: 14px; font-weight: 600;">${habit.name}</span>
-                        </div>
-                        <div class="month-grid">
-                            ${gridHtml}
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function toggleDateCompletion(habitId, dateStr) {
-            const completionKey = `${habitId}-${dateStr}`;
-            habitCompletions[completionKey] = !habitCompletions[completionKey];
-            saveData();
-            renderMonthlyProgress();
-            updateDayProgress();
-        }
-
-        function openAddModal() {
-            editingHabitId = null;
-            selectedColor = 'red';
-            document.getElementById('habitForm').reset();
-            document.getElementById('modalTitle').textContent = 'Add New Habit';
-            document.getElementById('submitBtn').textContent = 'Create Habit';
-            updateColorPickerUI();
-            document.getElementById('habitModal').classList.add('active');
-        }
-
-        function closeModal() {
-            editingHabitId = null;
-            document.getElementById('habitModal').classList.remove('active');
-        }
-
-        function openSettingsModal() {
-            document.getElementById('wakeUpTime').value = wakeUpTime;
-            document.getElementById('bedTime').value = bedTime;
-            document.getElementById('settingsModal').classList.add('active');
-        }
-
-        function closeSettingsModal() {
-            document.getElementById('settingsModal').classList.remove('active');
-        }
-
-        function saveSettings() {
-            wakeUpTime = document.getElementById('wakeUpTime').value;
-            bedTime = document.getElementById('bedTime').value;
-            saveData();
-            closeSettingsModal();
-            updateDayProgress();
-        }
-
-        function saveHabit() {
-            const name = document.getElementById('habitName').value.trim();
-            const category = document.getElementById('habitCategory').value;
-
-            if (!name) {
-                alert('Please enter a habit name');
-                return;
-            }
-
-            if (editingHabitId) {
-                const habit = habits.find(h => h.id === editingHabitId);
-                if (habit) {
-                    habit.name = name;
-                    habit.category = category;
-                    habit.color = selectedColor;
-                }
-            } else {
-                const newHabit = {
-                    id: Date.now(),
-                    name,
-                    category,
-                    completed: false,
-                    color: selectedColor
-                };
-                habits.push(newHabit);
-            }
-
-            saveData();
-            renderHabits();
-            renderMonthlyProgress();
-            closeModal();
-        }
-
-        function editHabit(id) {
-            const habit = habits.find(h => h.id === id);
-            if (!habit) return;
-
-            editingHabitId = id;
-            selectedColor = habit.color;
-
-            document.getElementById('habitName').value = habit.name;
-            document.getElementById('habitCategory').value = habit.category;
-            document.getElementById('modalTitle').textContent = 'Edit Habit';
-            document.getElementById('submitBtn').textContent = 'Update Habit';
-
-            updateColorPickerUI();
-            document.getElementById('habitModal').classList.add('active');
-        }
-
-        function deleteHabit(id) {
-            if (confirm('Delete this habit?')) {
-                habits = habits.filter(h => h.id !== id);
-                saveData();
-                renderHabits();
-                renderMonthlyProgress();
-            }
-        }
-
-        function selectColor(color) {
-            selectedColor = color;
-            updateColorPickerUI();
-        }
-
-        function updateColorPickerUI() {
-            const colorMap = {
-                red: '#ff3b30',
-                orange: '#ff9500',
-                green: '#4cd964',
-                blue: '#007aff',
-                purple: '#5956d6'
-            };
-
-            document.querySelectorAll('.color-picker').forEach(btn => {
-                btn.classList.remove('active');
-                btn.style.border = '2px solid transparent';
-            });
-
-            const buttons = document.querySelectorAll('.color-picker');
-            const colorOrder = ['red', 'orange', 'green', 'blue', 'purple'];
-            const index = colorOrder.indexOf(selectedColor);
-            if (index >= 0 && buttons[index]) {
-                buttons[index].classList.add('active');
-                buttons[index].style.border = `2px solid ${colorMap[selectedColor]}`;
-            }
-        }
-
-        function toggleStats() {
-            alert('Show detailed statistics');
-        }
-
-        function saveNotes() {
-            notes = document.getElementById('notesText').value;
-            saveData();
-        }
-
-        function loadNotes() {
-            document.getElementById('notesText').value = notes;
-        }
-
-        loadData();
-        renderHabits();
-        renderMonthlyProgress();
-        updateYearProgress();
-        updateDayProgress();
     </script>
 </body>
 </html>
