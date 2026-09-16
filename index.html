@@ -1341,7 +1341,17 @@
 
                     items.forEach((item, index) => {
                         const id = item.getAttribute('data-id');
-                        updates.push({ id: id, position: index, user_id: userId });
+                        const habit = habits.find(h => String(h.id) === String(id));
+                        if (habit) {
+                            updates.push({
+                                id: id,
+                                position: index,
+                                user_id: userId,
+                                name: habit.name,
+                                category: habit.category,
+                                color: habit.color
+                            });
+                        }
                     });
 
                     const { error } = await supabaseClient
