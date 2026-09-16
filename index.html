@@ -746,6 +746,79 @@
             }
         }
 
+        /* Auth Modal & Loading */
+        .auth-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-dark);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .auth-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            padding: 32px;
+            width: 100%;
+            max-width: 400px;
+            backdrop-filter: var(--glass-blur);
+            text-align: center;
+        }
+
+        .auth-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 24px;
+            margin-bottom: 24px;
+            background: linear-gradient(135deg, var(--accent-red), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .auth-toggle {
+            margin-top: 20px;
+            font-size: 14px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        #loadingOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-dark);
+            z-index: 3000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-primary);
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255,255,255,0.1);
+            border-left-color: var(--accent-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
         /* Monthly Progress Styles */
         .month-grid {
             display: flex;
@@ -775,13 +848,39 @@
         #gradientOrange { stop:nth-child(1) { stop-color: var(--accent-orange); } }
     </style>
 </head>
-<body>
+<body onload="initApp()">
+    <div id="loadingOverlay">
+        <div class="spinner"></div>
+        <div>LOADING SYSTEM...</div>
+    </div>
+
+    <div id="authOverlay" class="auth-overlay" style="display: none;">
+        <div class="auth-card">
+            <div class="auth-title" id="authTitle">Login</div>
+            <form id="authForm" onsubmit="handleAuth(event)">
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" id="authEmail" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <input type="password" id="authPassword" class="form-input" required>
+                </div>
+                <button type="submit" class="btn btn-primary" id="authSubmitBtn">Login</button>
+            </form>
+            <div class="auth-toggle" onclick="toggleAuthMode()" id="authToggleText">
+                Don't have an account? Sign Up
+            </div>
+        </div>
+    </div>
+
     <div class="container">
         <!-- Header -->
         <div class="header">
             <div class="header-title">Dashboard</div>
             <div class="header-actions">
                 <button class="icon-btn" onclick="toggleStats()">📊</button>
+                <button class="icon-btn" onclick="signOut()">🚪</button>
                 <button class="icon-btn" onclick="openSettingsModal()">⚙️</button>
             </div>
         </div>
@@ -1018,56 +1117,142 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        // Sample data
-        let habits = [
-            { id: 1, name: 'Morning Meditation', category: 'mind', completed: true, color: 'red' },
-            { id: 2, name: 'Drink Water', category: 'body', completed: true, color: 'blue' },
-            { id: 3, name: 'Read', category: 'soul', completed: false, color: 'purple' },
-            { id: 4, name: 'Exercise', category: 'body', completed: true, color: 'orange' },
-        ];
+        // Supabase Configuration
+        const SUPABASE_URL = 'https://mwwsmyeoiwxcjvpaprtr.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_2EuExUKps8pR8Ia-bNKhTA_psbcFwys';
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        let selectedColor = 'red';
-        let calendarDate = new Date();
-        let editingHabitId = null;
-
-        // Track habit completions by date
+        // App State
+        let habits = [];
         let habitCompletions = {};
-
-        // Notes
         let notes = '';
         let wakeUpTime = '06:00';
         let bedTime = '22:00';
         let essayIdeas = [];
+        let selectedColor = 'red';
+        let calendarDate = new Date();
+        let editingHabitId = null;
+        let currentUser = null;
+        let authMode = 'login'; // 'login' or 'signup'
 
-        // Load data from localStorage
-        function loadData() {
-            const saved = localStorage.getItem('habitTrackerData');
-            if (saved) {
-                const data = JSON.parse(saved);
-                habits = data.habits || habits;
-                habitCompletions = data.completions || {};
-                notes = data.notes || '';
-                wakeUpTime = data.wakeUpTime || '06:00';
-                bedTime = data.bedTime || '22:00';
-                essayIdeas = data.essayIdeas || [];
+        async function initApp() {
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session) {
+                    currentUser = session.user;
+                    await loadData();
+                    document.getElementById('loadingOverlay').style.display = 'none';
+                } else {
+                    document.getElementById('loadingOverlay').style.display = 'none';
+                    document.getElementById('authOverlay').style.display = 'flex';
+                }
+            } catch (error) {
+                console.error('Init error:', error);
+                alert('Failed to initialize app. Please refresh.');
             }
+        }
+
+        function toggleAuthMode() {
+            authMode = authMode === 'login' ? 'signup' : 'login';
+            document.getElementById('authTitle').textContent = authMode === 'login' ? 'Login' : 'Sign Up';
+            document.getElementById('authSubmitBtn').textContent = authMode === 'login' ? 'Login' : 'Sign Up';
+            document.getElementById('authToggleText').textContent = authMode === 'login'
+                ? "Don't have an account? Sign Up"
+                : "Already have an account? Login";
+        }
+
+        async function handleAuth(event) {
+            event.preventDefault();
+            const email = document.getElementById('authEmail').value;
+            const password = document.getElementById('authPassword').value;
+
+            try {
+                let result;
+                if (authMode === 'login') {
+                    result = await supabase.auth.signInWithPassword({ email, password });
+                } else {
+                    result = await supabase.auth.signUp({ email, password });
+                }
+
+                if (result.error) throw result.error;
+
+                const { data: { user } } = result.auth;
+                currentUser = user;
+
+                // Ensure profile exists
+                await supabase.from('profiles').upsert({
+                    id: user.id,
+                    updated_at: new Date().toISOString()
+                });
+
+                await loadData();
+                document.getElementById('authOverlay').style.display = 'none';
+            } catch (error) {
+                alert(error.message);
+            }
+        }
+
+        async function signOut() {
+            await supabase.auth.signOut();
+            location.reload();
+        }
+
+        async function loadData() {
+            const userId = currentUser.id;
+
+            // Fetch Profile
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', userId)
+                .single();
+
+            if (profile) {
+                notes = profile.notes || '';
+                wakeUpTime = profile.wake_up_time || '06:00';
+                bedTime = profile.bed_time || '22:00';
+            }
+
+            // Fetch Habits
+            const { data: habitsData } = await supabase
+                .from('habits')
+                .select('*')
+                .eq('user_id', userId);
+
+            habits = habitsData || [];
+
+            // Fetch Completions
+            const { data: completionsData } = await supabase
+                .from('completions')
+                .select('habit_id, date, completed')
+                .eq('user_id', userId);
+
+            habitCompletions = {};
+            completionsData.forEach(c => {
+                habitCompletions[`${c.habit_id}-${c.date}`] = c.completed;
+            });
+
+            // Fetch Essay Ideas
+            const { data: ideasData } = await supabase
+                .from('essay_ideas')
+                .select('idea')
+                .eq('user_id', userId);
+
+            essayIdeas = ideasData.map(i => i.idea) || [];
+
             loadNotes();
+            renderHabits();
+            renderMonthlyProgress();
+            updateYearProgress();
+            updateDayProgress();
         }
 
-        // Save data to localStorage
-        function saveData() {
-            localStorage.setItem('habitTrackerData', JSON.stringify({
-                habits,
-                completions: habitCompletions,
-                notes,
-                wakeUpTime,
-                bedTime,
-                essayIdeas
-            }));
+        function loadNotes() {
+            document.getElementById('notesText').value = notes;
         }
 
-        // Update year progress bar
         function updateYearProgress() {
             const now = new Date();
             const start = new Date(now.getFullYear(), 0, 0);
@@ -1082,7 +1267,6 @@
             document.getElementById('yearProgressFill').style.width = percentage + '%';
         }
 
-        // Update day progress circle
         function updateDayProgress() {
             const now = new Date();
             const currentMinutes = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
@@ -1110,7 +1294,6 @@
 
             document.getElementById('dayProgressValue').textContent = Math.round(dayProgress) + '%';
 
-            // Dynamic Label based on time of day
             const hours = now.getHours();
             let status = 'Night';
             if (hours >= 5 && hours < 12) status = 'Morning';
@@ -1118,11 +1301,8 @@
             else if (hours >= 17 && hours < 21) status = 'Evening';
             document.querySelector('.progress-text .progress-label').textContent = status;
 
-            // Calculate time remaining until bed time
             let remainingMinutes = bedMinutes - currentMinutes;
-            if (remainingMinutes < 0) {
-                remainingMinutes = 0;
-            }
+            if (remainingMinutes < 0) remainingMinutes = 0;
 
             const hRem = Math.floor(remainingMinutes / 60);
             const mRem = Math.floor(remainingMinutes % 60);
@@ -1142,10 +1322,8 @@
 
         function switchTab(event, tabName) {
             event.preventDefault();
-
             document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
             document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
-
             document.getElementById(tabName).style.display = 'block';
             event.target.closest('.tab').classList.add('active');
 
@@ -1163,7 +1341,6 @@
                 list.innerHTML = '<div style="text-align: center; color: var(--text-secondary); padding: 20px; font-size: 14px;">No essay ideas yet. Start brainstorming!</div>';
                 return;
             }
-
             list.innerHTML = essayIdeas.map((idea, index) => `
                 <div class="habit-item" style="cursor: default;">
                     <div class="habit-info">
@@ -1176,23 +1353,42 @@
             `).join('');
         }
 
-        function addEssayIdea() {
+        async function addEssayIdea() {
             const input = document.getElementById('essayInput');
             const idea = input.value.trim();
-            if (idea) {
-                essayIdeas.push(idea);
-                saveData();
-                renderEssayIdeas();
-                input.value = '';
-            }
+            if (!idea) return;
+
+            const { error } = await supabase
+                .from('essay_ideas')
+                .insert({ user_id: currentUser.id, idea });
+
+            if (error) return alert(error.message);
+
+            essayIdeas.push(idea);
+            renderEssayIdeas();
+            input.value = '';
         }
 
-        function deleteEssayIdea(index) {
-            if (confirm('Delete this essay idea?')) {
-                essayIdeas.splice(index, 1);
-                saveData();
-                renderEssayIdeas();
-            }
+        async function deleteEssayIdea(index) {
+            if (!confirm('Delete this essay idea?')) return;
+
+            // Need the ID from the database. For simplicity, we'll re-fetch or use a temporary local ID.
+            // Better: fetch essay ideas with their IDs.
+            const { data: ideas } = await supabase
+                .from('essay_ideas')
+                .select('id')
+                .eq('user_id', currentUser.id);
+
+            const id = ideas[index].id;
+            const { error } = await supabase
+                .from('essay_ideas')
+                .delete()
+                .eq('id', id);
+
+            if (error) return alert(error.message);
+
+            essayIdeas.splice(index, 1);
+            renderEssayIdeas();
         }
 
         function renderHabits() {
@@ -1201,7 +1397,6 @@
                 habitsList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📭</div><div class="empty-state-title">No habits yet</div></div>';
                 return;
             }
-
             const today = new Date().toISOString().split('T')[0];
             habitsList.innerHTML = habits.map((habit, index) => {
                 const completionKey = `${habit.id}-${today}`;
@@ -1240,16 +1435,22 @@
                         if (habit) newOrder.push(habit);
                     });
                     habits = newOrder;
-                    saveData();
                 }
             });
         }
 
-        function toggleHabitToday(id) {
+        async function toggleHabitToday(id) {
             const today = new Date().toISOString().split('T')[0];
             const completionKey = `${id}-${today}`;
-            habitCompletions[completionKey] = !habitCompletions[completionKey];
-            saveData();
+            const completed = !habitCompletions[completionKey];
+
+            const { error } = await supabase
+                .from('completions')
+                .upsert({ user_id: currentUser.id, habit_id: id, date: today, completed }, { onConflict: 'habit_id,date' });
+
+            if (error) return alert(error.message);
+
+            habitCompletions[completionKey] = completed;
             renderHabits();
             renderMonthlyProgress();
             updateDayProgress();
@@ -1261,18 +1462,12 @@
                 container.innerHTML = '<div style="text-align: center; color: var(--text-secondary); padding: 24px;">No habits to track</div>';
                 return;
             }
-
             const now = new Date();
             const year = now.getFullYear();
             const month = now.getMonth();
             const daysInMonth = new Date(year, month + 1, 0).getDate();
-
             const colorMap = {
-                red: '#ff3b30',
-                orange: '#ff9500',
-                green: '#4cd964',
-                blue: '#007aff',
-                purple: '#5956d6'
+                red: '#ff3b30', orange: '#ff9500', green: '#4cd964', blue: '#007aff', purple: '#5956d6'
             };
 
             container.innerHTML = habits.map(habit => {
@@ -1283,6 +1478,157 @@
                     const isCompleted = habitCompletions[completionKey];
                     const color = isCompleted ? colorMap[habit.color] : 'rgba(255, 255, 255, 0.1)';
                     gridHtml += `<div class="month-day ${isCompleted ? 'completed' : ''}"
+                                      style="background-color: ${color}"
+                                      onclick="toggleDateCompletion(${habit.id}, '${dateStr}')"></div>`;
+                }
+                return `
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 12px;">
+                        <div style="display: flex; align-items: center; gap: 8px; min-width: 120px;">
+                            <span class="color-badge ${habit.color}"></span>
+                            <span style="font-size: 14px; font-weight: 600;">${habit.name}</span>
+                        </div>
+                        <div class="month-grid">${gridHtml}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function toggleDateCompletion(habitId, dateStr) {
+            const completionKey = `${habitId}-${dateStr}`;
+            const completed = !habitCompletions[completionKey];
+
+            const { error } = await supabase
+                .from('completions')
+                .upsert({ user_id: currentUser.id, habit_id: habitId, date: dateStr, completed }, { onConflict: 'habit_id,date' });
+
+            if (error) return alert(error.message);
+
+            habitCompletions[completionKey] = completed;
+            renderMonthlyProgress();
+            updateDayProgress();
+        }
+
+        function openAddModal() {
+            editingHabitId = null;
+            selectedColor = 'red';
+            document.getElementById('habitForm').reset();
+            document.getElementById('modalTitle').textContent = 'Add New Habit';
+            document.getElementById('submitBtn').textContent = 'Create Habit';
+            updateColorPickerUI();
+            document.getElementById('habitModal').classList.add('active');
+        }
+
+        function closeModal() {
+            editingHabitId = null;
+            document.getElementById('habitModal').classList.remove('active');
+        }
+
+        function openSettingsModal() {
+            document.getElementById('wakeUpTime').value = wakeUpTime;
+            document.getElementById('bedTime').value = bedTime;
+            document.getElementById('settingsModal').classList.add('active');
+        }
+
+        function closeSettingsModal() {
+            document.getElementById('settingsModal').classList.remove('active');
+        }
+
+        async function saveSettings() {
+            const wakeUp = document.getElementById('wakeUpTime').value;
+            const bed = document.getElementById('bedTime').value;
+
+            const { error } = await supabase
+                .from('profiles')
+                .update({ wake_up_time: wakeUp, bed_time: bed })
+                .eq('id', currentUser.id);
+
+            if (error) return alert(error.message);
+
+            wakeUpTime = wakeUp;
+            bedTime = bed;
+            closeSettingsModal();
+            updateDayProgress();
+        }
+
+        async function saveHabit() {
+            const name = document.getElementById('habitName').value.trim();
+            const category = document.getElementById('habitCategory').value;
+            if (!name) return alert('Please enter a habit name');
+
+            if (editingHabitId) {
+                const { error } = await supabase
+                    .from('habits')
+                    .update({ name, category, color: selectedColor })
+                    .eq('id', editingHabitId);
+                if (error) return alert(error.message);
+            } else {
+                const { data, error } = await supabase
+                    .from('habits')
+                    .insert({ user_id: currentUser.id, name, category, color: selectedColor })
+                    .select();
+                if (error) return alert(error.message);
+                habits.push(data[0]);
+            }
+
+            await loadData();
+            closeModal();
+        }
+
+        function editHabit(id) {
+            const habit = habits.find(h => h.id === id);
+            if (!habit) return;
+            editingHabitId = id;
+            selectedColor = habit.color;
+            document.getElementById('habitName').value = habit.name;
+            document.getElementById('habitCategory').value = habit.category;
+            document.getElementById('modalTitle').textContent = 'Edit Habit';
+            document.getElementById('submitBtn').textContent = 'Update Habit';
+            updateColorPickerUI();
+            document.getElementById('habitModal').classList.add('active');
+        }
+
+        async function deleteHabit(id) {
+            if (!confirm('Delete this habit?')) return;
+            const { error } = await supabase.from('habits').delete().eq('id', id);
+            if (error) return alert(error.message);
+            await loadData();
+        }
+
+        function selectColor(color) {
+            selectedColor = color;
+            updateColorPickerUI();
+        }
+
+        function updateColorPickerUI() {
+            const colorMap = { red: '#ff3b30', orange: '#ff9500', green: '#4cd964', blue: '#007aff', purple: '#5956d6' };
+            document.querySelectorAll('.color-picker').forEach(btn => {
+                btn.classList.remove('active');
+                btn.style.border = '2px solid transparent';
+            });
+            const buttons = document.querySelectorAll('.color-picker');
+            const colorOrder = ['red', 'orange', 'green', 'blue', 'purple'];
+            const index = colorOrder.indexOf(selectedColor);
+            if (index >= 0 && buttons[index]) {
+                buttons[index].classList.add('active');
+                buttons[index].style.border = `2px solid ${colorMap[selectedColor]}`;
+            }
+        }
+
+        function toggleStats() {
+            alert('Show detailed statistics');
+        }
+
+        async function saveNotes() {
+            const notesText = document.getElementById('notesText').value;
+            const { error } = await supabase
+                .from('profiles')
+                .update({ notes: notesText })
+                .eq('id', currentUser.id);
+            if (error) return alert(error.message);
+            notes = notesText;
+        }
+    </script>
+ `<div class="month-day ${isCompleted ? 'completed' : ''}"
                                       style="background-color: ${color}"
                                       onclick="toggleDateCompletion(${habit.id}, '${dateStr}')"></div>`;
                 }
