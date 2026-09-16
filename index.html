@@ -746,49 +746,7 @@
             }
         }
 
-        /* Auth Modal & Loading */
-        .auth-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: var(--bg-dark);
-            z-index: 2000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-
-        .auth-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-light);
-            border-radius: 24px;
-            padding: 32px;
-            width: 100%;
-            max-width: 400px;
-            backdrop-filter: var(--glass-blur);
-            text-align: center;
-        }
-
-        .auth-title {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 24px;
-            margin-bottom: 24px;
-            background: linear-gradient(135deg, var(--accent-red), var(--accent-purple));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .auth-toggle {
-            margin-top: 20px;
-            font-size: 14px;
-            color: var(--text-secondary);
-            cursor: pointer;
-            text-decoration: underline;
-        }
-
+        /* Loading */
         #loadingOverlay {
             position: fixed;
             top: 0;
@@ -854,33 +812,12 @@
         <div>LOADING SYSTEM...</div>
     </div>
 
-    <div id="authOverlay" class="auth-overlay" style="display: none;">
-        <div class="auth-card">
-            <div class="auth-title" id="authTitle">Login</div>
-            <form id="authForm" onsubmit="handleAuth(event)">
-                <div class="form-group">
-                    <label class="form-label">Email</label>
-                    <input type="email" id="authEmail" class="form-input" required>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Password</label>
-                    <input type="password" id="authPassword" class="form-input" required>
-                </div>
-                <button type="submit" class="btn btn-primary" id="authSubmitBtn">Login</button>
-            </form>
-            <div class="auth-toggle" onclick="toggleAuthMode()" id="authToggleText">
-                Don't have an account? Sign Up
-            </div>
-        </div>
-    </div>
-
     <div class="container">
         <!-- Header -->
         <div class="header">
             <div class="header-title">Dashboard</div>
             <div class="header-actions">
                 <button class="icon-btn" onclick="toggleStats()">📊</button>
-                <button class="icon-btn" onclick="signOut()">🚪</button>
                 <button class="icon-btn" onclick="openSettingsModal()">⚙️</button>
             </div>
         </div>
@@ -1125,6 +1062,7 @@
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         // App State
+        let userId = null;
         let habits = [];
         let habitCompletions = {};
         let notes = '';
@@ -1134,74 +1072,34 @@
         let selectedColor = 'red';
         let calendarDate = new Date();
         let editingHabitId = null;
-        let currentUser = null;
-        let authMode = 'login'; // 'login' or 'signup'
 
         async function initApp() {
             try {
-                const { data: { session } } = await supabaseClient.auth.getSession();
-                if (session) {
-                    currentUser = session.user;
-                    await loadData();
-                    document.getElementById('loadingOverlay').style.display = 'none';
-                } else {
-                    document.getElementById('loadingOverlay').style.display = 'none';
-                    document.getElementById('authOverlay').style.display = 'flex';
+                // 1. Identify the user via URL or LocalStorage
+                const urlParams = new URLSearchParams(window.location.search);
+                userId = urlParams.get('id');
+
+                if (!userId) {
+                    userId = localStorage.getItem('habit_user_id');
                 }
+
+                if (!userId) {
+                    // Generate a new random ID for a first-time user
+                    userId = crypto.randomUUID();
+                    localStorage.setItem('habit_user_id', userId);
+                    // Update URL without refreshing to make it shareable
+                    window.history.replaceState(null, '', `?id=${userId}`);
+                }
+
+                await loadData();
+                document.getElementById('loadingOverlay').style.display = 'none';
             } catch (error) {
                 console.error('Init error:', error);
                 alert('Failed to initialize app. Please refresh.');
             }
         }
 
-        function toggleAuthMode() {
-            authMode = authMode === 'login' ? 'signup' : 'login';
-            document.getElementById('authTitle').textContent = authMode === 'login' ? 'Login' : 'Sign Up';
-            document.getElementById('authSubmitBtn').textContent = authMode === 'login' ? 'Login' : 'Sign Up';
-            document.getElementById('authToggleText').textContent = authMode === 'login'
-                ? "Don't have an account? Sign Up"
-                : "Already have an account? Login";
-        }
-
-        async function handleAuth(event) {
-            event.preventDefault();
-            const email = document.getElementById('authEmail').value;
-            const password = document.getElementById('authPassword').value;
-
-            try {
-                let result;
-                if (authMode === 'login') {
-                    result = await supabaseClient.auth.signInWithPassword({ email, password });
-                } else {
-                    result = await supabaseClient.auth.signUp({ email, password });
-                }
-
-                if (result.error) throw result.error;
-
-                const { data: { user } } = result.auth;
-                currentUser = user;
-
-                // Ensure profile exists
-                await supabaseClient.from('profiles').upsert({
-                    id: user.id,
-                    updated_at: new Date().toISOString()
-                });
-
-                await loadData();
-                document.getElementById('authOverlay').style.display = 'none';
-            } catch (error) {
-                alert(error.message);
-            }
-        }
-
-        async function signOut() {
-            await supabaseClient.auth.signOut();
-            location.reload();
-        }
-
         async function loadData() {
-            const userId = currentUser.id;
-
             // Fetch Profile
             const { data: profile } = await supabaseClient
                 .from('profiles')
@@ -1362,7 +1260,7 @@
 
             const { error } = await supabaseClient
                 .from('essay_ideas')
-                .insert({ user_id: currentUser.id, idea });
+                .insert({ user_id: userId, idea });
 
             if (error) return alert(error.message);
 
@@ -1377,7 +1275,7 @@
             const { data: ideas } = await supabaseClient
                 .from('essay_ideas')
                 .select('id')
-                .eq('user_id', currentUser.id);
+                .eq('user_id', userId);
 
             if (!ideas || !ideas[index]) return;
 
@@ -1448,7 +1346,7 @@
 
             const { error } = await supabaseClient
                 .from('completions')
-                .upsert({ user_id: currentUser.id, habit_id: id, date: today, completed }, { onConflict: 'habit_id,date' });
+                .upsert({ user_id: userId, habit_id: id, date: today, completed }, { onConflict: 'habit_id,date' });
 
             if (error) return alert(error.message);
 
@@ -1501,7 +1399,7 @@
 
             const { error } = await supabaseClient
                 .from('completions')
-                .upsert({ user_id: currentUser.id, habit_id: habitId, date: dateStr, completed }, { onConflict: 'habit_id,date' });
+                .upsert({ user_id: userId, habit_id: habitId, date: dateStr, completed }, { onConflict: 'habit_id,date' });
 
             if (error) return alert(error.message);
 
@@ -1541,8 +1439,7 @@
 
             const { error } = await supabaseClient
                 .from('profiles')
-                .update({ wake_up_time: wakeUp, bed_time: bed })
-                .eq('id', currentUser.id);
+                .upsert({ id: userId, wake_up_time: wakeUp, bed_time: bed, updated_at: new Date().toISOString() });
 
             if (error) return alert(error.message);
 
@@ -1566,7 +1463,7 @@
             } else {
                 const { data, error } = await supabaseClient
                     .from('habits')
-                    .insert({ user_id: currentUser.id, name, category, color: selectedColor })
+                    .insert({ user_id: userId, name, category, color: selectedColor })
                     .select();
                 if (error) return alert(error.message);
                 habits.push(data[0]);
@@ -1624,8 +1521,7 @@
             const notesText = document.getElementById('notesText').value;
             const { error } = await supabaseClient
                 .from('profiles')
-                .update({ notes: notesText })
-                .eq('id', currentUser.id);
+                .upsert({ id: userId, notes: notesText, updated_at: new Date().toISOString() });
             if (error) return alert(error.message);
             notes = notesText;
         }
